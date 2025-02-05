@@ -5,7 +5,7 @@
 // Filename      : tb_rvseed.v
 // Author        : Rongye
 // Created On    : 2022-03-25 04:18
-// Last Modified : 2025-02-05 06:26
+// Last Modified : 2025-02-05 06:31
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -23,27 +23,27 @@ localparam SIM_PERIOD = 20; // 20ns -> 50MHz
 
 integer k;
 initial begin
-    #(`SIM_PERIOD/2);
+    #(SIM_PERIOD/2);
     clk = 1'b0;
     reset;
     // $finish;
 end
 
 initial begin
-    #(`SIM_PERIOD * 100000);
+    #(SIM_PERIOD * 100000);
     $display("Time Out");
     $finish;
 end
 
-always #(`SIM_PERIOD/2) clk = ~clk;
+always #(SIM_PERIOD/2) clk = ~clk;
 
 task reset;                // reset 1 clock
     begin
         enable = 0; 
         rst_n = 0; 
-        #(`SIM_PERIOD * 1);
+        #(SIM_PERIOD * 1);
         rst_n = 1;
-        #(`SIM_PERIOD * 5 + 1);
+        #(SIM_PERIOD * 5 + 1);
         enable = 1; 
     end
 endtask
