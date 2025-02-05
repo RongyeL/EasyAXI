@@ -23,3 +23,4 @@
 4. After opening verdi, you can see the compiled code and the normal waveform, which means that the environment is ready.
 
 > About development software: Sorry, the vcs+verdi environment needs to be installed by yourself, which will not be explained or provided in this teaching video.
+
