@@ -5,7 +5,7 @@
 // Filename      : tb_rvseed.v
 // Author        : Rongye
 // Created On    : 2022-03-25 04:18
-// Last Modified : 2025-02-05 06:31
+// Last Modified : 2025-02-08 06:48
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -30,7 +30,7 @@ initial begin
 end
 
 initial begin
-    #(SIM_PERIOD * 100000);
+    #(SIM_PERIOD * 1000);
     $display("Time Out");
     $finish;
 end
@@ -48,7 +48,7 @@ task reset;                // reset 1 clock
     end
 endtask
 
-EASYAXI U_EASYAXI(
+EASYAXI_TOP U_EASYAXI_TOP (
     .clk                            ( clk                           ),
     .rst_n                          ( rst_n                         ),
     .enable                         ( enable                        )
