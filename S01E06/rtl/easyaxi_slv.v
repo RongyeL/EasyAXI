@@ -5,7 +5,7 @@
 // Filename      : easyaxi_slv.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:52
-// Last Modified : 2025-08-04 09:06
+// Last Modified : 2025-08-04 09:28
 // ---------------------------------------------------------------------------------
 // Description   : AXI Slave with burst support up to length 8 and outstanding capability
 //
@@ -56,12 +56,14 @@ reg                      rd_comp_buff_r  [OST_DEPTH-1:0];
 
 // Bit-vector representations for status flags
 reg  [OST_DEPTH    -1:0] rd_valid_bits;
+reg  [OST_DEPTH    -1:0] rd_result_bits;
+reg  [OST_DEPTH    -1:0] rd_clear_bits;
+
 
 // Buffer management pointers
 reg  [OST_CNT_W    -1:0] rd_set_ptr_r;
 reg  [OST_CNT_W    -1:0] rd_clr_ptr_r;
 reg  [OST_CNT_W    -1:0] rd_result_ptr_r;
-wire [OST_CNT_W    -1:0] rd_result_ptr;
 
 // Outstanding transaction payload buffers
 reg  [`AXI_LEN_W   -1:0] rd_curr_index_r [OST_DEPTH-1:0];
@@ -124,20 +126,20 @@ end
 EASYAXI_ARB #(
     .DEEP_NUM(OST_DEPTH)
 ) U_RD_RESULT_ARB (
-    .clk      (clk     ),
-    .rst_n    (rst_n   ),
-    .queue_i  (rd_valid_bits ),
-    .sche_en  (rd_result_en  ),
-    .pointer_o(rd_result_ptr   )
+    .clk      (clk            ),
+    .rst_n    (rst_n          ),
+    .queue_i  (rd_result_bits ),
+    .sche_en  (rd_result_en   ),
+    .pointer_o(rd_result_ptr_r)
 );
-always @(posedge clk or negedge rst_n) begin
-    if (~rst_n) begin
-        rd_result_ptr_r <= #DLY {OST_CNT_W{1'b0}};
-    end
-    else if (rd_result_en & rd_result_last) begin
-        rd_result_ptr_r <= #DLY ((rd_result_ptr_r + 1) < OST_DEPTH) ? rd_result_ptr_r + 1 : {OST_CNT_W{1'b0}};
-    end
-end
+// always @(posedge clk or negedge rst_n) begin
+    // if (~rst_n) begin
+        // rd_result_ptr_r <= #DLY {OST_CNT_W{1'b0}};
+    // end
+    // else if (rd_result_en & rd_result_last) begin
+        // rd_result_ptr_r <= #DLY ((rd_result_ptr_r + 1) < OST_DEPTH) ? rd_result_ptr_r + 1 : {OST_CNT_W{1'b0}};
+    // end
+// end
 
 //--------------------------------------------------------------------------------
 // Main Ctrl
@@ -153,6 +155,14 @@ always @(*) begin : GEN_VLD_VEC
     end
 end
 assign rd_buff_full = &rd_valid_bits;
+
+always @(*) begin : GEN_RESULT_VEC
+    integer i;
+    rd_result_bits = {OST_DEPTH{1'b0}};
+    for (i=0; i<OST_DEPTH; i=i+1) begin
+        rd_result_bits[i] = rd_result_buff_r[i];
+    end
+end
 
 assign axi_slv_arready = ~rd_buff_full;
 

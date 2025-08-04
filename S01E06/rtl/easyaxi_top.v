@@ -5,17 +5,17 @@
 // Filename      : easyaxi.v
 // Author        : Rongye
 // Created On    : 2025-02-05 05:04
-// Last Modified : 2025-05-18 05:53
+// Last Modified : 2025-08-04 09:28
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
 //
 // -FHDR----------------------------------------------------------------------------
 module EASYAXI_TOP (
-    input wire clk,
-    input wire rst_n,
-    input wire enable, 
-    input wire done 
+    input  wire clk,
+    input  wire rst_n,
+    input  wire enable, 
+    output wire done 
 );
 //--------------------------------------------------------------------------------
 // Inst Master
