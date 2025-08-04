@@ -5,13 +5,13 @@
 // Filename      : easyaxi_mst.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:45
-// Last Modified : 2025-05-24 04:49
+// Last Modified : 2025-07-30 09:22
 // ---------------------------------------------------------------------------------
 // Description   : AXI Master with burst support up to length 8 and outstanding capability
 //
 // -FHDR----------------------------------------------------------------------------
 module EASYAXI_MST #(
-    parameter OST_DEPTH = 32  // Outstanding transaction depth (power of 2)
+    parameter OST_DEPTH = 16  // Outstanding transaction depth (power of 2)
 )(
 // Global
     input  wire                      clk,

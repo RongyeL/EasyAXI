@@ -5,13 +5,13 @@
 // Filename      : easyaxi_slv.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:52
-// Last Modified : 2025-05-24 04:49
+// Last Modified : 2025-08-04 08:39
 // ---------------------------------------------------------------------------------
 // Description   : AXI Slave with burst support up to length 8 and outstanding capability
 //
 // -FHDR----------------------------------------------------------------------------
 module EASYAXI_SLV #(
-    parameter OST_DEPTH = 32  // Outstanding depth, must be power of 2
+    parameter OST_DEPTH = 16  // Outstanding depth, must be power of 2
 )(
 // Global
     input  wire                      clk,
