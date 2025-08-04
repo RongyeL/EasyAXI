@@ -5,10 +5,9 @@
 // Filename      : easyaxi_arb.v
 // Author        : Rongye
 // Created On    : 2025-08-04 08:29
-// Last Modified : 2025-08-04 08:39
+// Last Modified : 2025-08-04 09:05
 // ---------------------------------------------------------------------------------
-// Description   : 
-//
+// Description   : Round-robin arbiter with index output
 //
 // -FHDR----------------------------------------------------------------------------
 module EASYAXI_ARB #(
@@ -16,64 +15,57 @@ module EASYAXI_ARB #(
 )(
     input  wire                clk,        // System clock
     input  wire                rst_n,      // Asynchronous active-low reset
-    input  wire [DEEP_NUM-1:0] queue_i,    // Request queue input, DEEP_NUM-bit wide (1=request pending)
+    input  wire [DEEP_NUM-1:0] queue_i,    // Request queue input
     input  wire                sche_en,    // Scheduling enable signal
-    output reg  [DEEP_NUM-1:0] pointer_o   // Grant output (one-hot encoded)
+    output reg  [$clog2(DEEP_NUM)-1:0] pointer_o   // Grant output (index)
 );
 
 // Internal signals
-reg  [DEEP_NUM-1:0] last_grant;    // Last granted request
-reg  [DEEP_NUM-1:0] mask;          // Priority mask
-wire [DEEP_NUM-1:0] masked_queue;  // Masked request queue
-wire [DEEP_NUM-1:0] unmasked_grant;// Grant before priority consideration
-wire [DEEP_NUM-1:0] grant;         // Final grant signal
-wire no_masked_req;                // Flag when no requests in masked portion
-reg  found;                        // Flag to indicate when last_grant bit is found
+reg  [DEEP_NUM-1:0] req_power;
+wire [DEEP_NUM-1:0] req_after_power = queue_i & req_power;
 
-// Mask generation: sets bits higher than last grant to 1
-always @(*) begin
-integer i,j;
-    mask = {DEEP_NUM{1'b0}};
-    found = 1'b0;
-    for (i = 0; i < DEEP_NUM; i = i + 1) begin
-        if (!found && last_grant[i]) begin
-            found = 1'b1;
-        end
-        if (found) begin
-            for (j = 0; j < DEEP_NUM; j = j + 1) begin
-                mask[j] = (j > i);
+wire [DEEP_NUM-1:0] old_mask = {req_after_power[DEEP_NUM-2:0] | old_mask[DEEP_NUM-2:0], 1'b0};
+wire [DEEP_NUM-1:0] new_mask = {queue_i[DEEP_NUM-2:0] | new_mask[DEEP_NUM-2:0], 1'b0};
+
+wire old_grant_work = (|req_after_power);
+
+wire [DEEP_NUM-1:0] old_grant = ~old_mask & req_after_power;
+wire [DEEP_NUM-1:0] new_grant = ~new_mask & queue_i;
+wire [DEEP_NUM-1:0] grant = old_grant_work ? old_grant : new_grant;
+
+// Convert one-hot to index
+function automatic [$clog2(DEEP_NUM)-1:0] onehot_to_index;
+    input [DEEP_NUM-1:0] onehot;
+    integer i;
+    begin
+        onehot_to_index = {$clog2(DEEP_NUM){1'b0}};
+        for (i = 0; i < DEEP_NUM; i = i + 1) begin
+            if (onehot[i]) begin
+                onehot_to_index = i;
             end
         end
     end
-end
+endfunction
 
-// Generate masked request queue
-assign masked_queue = queue_i & mask;
-
-// Check if there are any requests in masked portion
-assign no_masked_req = (masked_queue == {DEEP_NUM{1'b0}});
-
-// Priority encoder: selects lowest set bit in masked queue
-assign unmasked_grant = masked_queue & (-masked_queue);
-
-// If no requests in masked portion, select from full queue
-assign grant = no_masked_req ? (queue_i & (-queue_i)) : unmasked_grant;
-
-// Output register update
 always @(posedge clk or negedge rst_n) begin
     if (~rst_n) begin
-        pointer_o  <= {DEEP_NUM{1'b0}};
-        last_grant <= {DEEP_NUM{1'b0}};
-    end 
+        req_power <= {DEEP_NUM{1'b1}};
+        pointer_o <= {$clog2(DEEP_NUM){1'b0}};
+    end
     else if (sche_en) begin
-        // Only update when there are pending requests
-        if (queue_i != {DEEP_NUM{1'b0}}) begin
-            pointer_o  <= grant;
-            last_grant <= grant;
-        end 
+        if (old_grant_work) begin
+            req_power <= old_mask;
+        end
+        else if (|queue_i) begin
+            req_power <= new_mask;
+        end
+        
+        // Update output index
+        if (|queue_i) begin
+            pointer_o <= onehot_to_index(grant);
+        end
         else begin
-            pointer_o <= {DEEP_NUM{1'b0}};
-            // Maintain last_grant when no requests
+            pointer_o <= {$clog2(DEEP_NUM){1'b0}};
         end
     end
 end
