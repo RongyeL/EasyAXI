@@ -5,7 +5,7 @@
 // Filename      : easyaxi_mst.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:45
-// Last Modified : 2025-07-30 09:22
+// Last Modified : 2025-08-05 08:54
 // ---------------------------------------------------------------------------------
 // Description   : AXI Master with burst support up to length 8 and outstanding capability
 //
@@ -309,7 +309,7 @@ always @(posedge clk or negedge rst_n) begin
     if (~rst_n) begin
         rd_req_cnt_r  <= #DLY {REQ_CNT_W{1'b0}};
     end
-    else if (rd_result_en & rd_result_last) begin
+    else if (rd_req_en) begin
         rd_req_cnt_r <= #DLY rd_req_cnt_r + 1;
     end
 end

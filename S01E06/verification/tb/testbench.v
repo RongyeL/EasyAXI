@@ -5,7 +5,7 @@
 // Filename      : tb_rvseed.v
 // Author        : Rongye
 // Created On    : 2022-03-25 04:18
-// Last Modified : 2025-08-04 09:29
+// Last Modified : 2025-08-05 08:48
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -53,7 +53,7 @@ endtask
 always begin
    wait (done == 1) begin
        enable = 0; 
-       #(SIM_PERIOD * 100 + 1);
+       #(SIM_PERIOD * 150 + 1);
        $finish;
    end
 end

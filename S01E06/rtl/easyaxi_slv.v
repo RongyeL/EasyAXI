@@ -5,7 +5,7 @@
 // Filename      : easyaxi_slv.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:52
-// Last Modified : 2025-08-04 09:28
+// Last Modified : 2025-08-05 09:10
 // ---------------------------------------------------------------------------------
 // Description   : AXI Slave with burst support up to length 8 and outstanding capability
 //
@@ -41,6 +41,7 @@ localparam MAX_BURST_LEN = 8;  // Maximum burst length support
 localparam BURST_CNT_W   = $clog2(MAX_BURST_LEN);  // Maximum burst length cnt width
 localparam REG_ADDR      = 16'h0000;  // Default register address
 localparam OST_CNT_W     = OST_DEPTH == 1 ? 1 : $clog2(OST_DEPTH);      // Outstanding counter width
+localparam MAX_GET_DATA_DLY = `AXI_DATA_GET_CNT_W'h18;      // Outstanding counter width
 
 //--------------------------------------------------------------------------------
 // Inner Signal 
@@ -379,14 +380,14 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: RD_DATA_PROC_SIM
         else if (rd_data_get[i] && (rd_curr_index_r[i] < rd_burst_lenth[i])) begin
             rd_data_get_cnt[i] <= #DLY `AXI_DATA_GET_CNT_W'h1;
         end
-        else if (rd_data_get_cnt[i]==`AXI_DATA_GET_CNT_W'h12) begin // rd data delay is 18 cycle
+        else if (rd_data_get_cnt[i]== MAX_GET_DATA_DLY) begin // rd data delay is 18 cycle
             rd_data_get_cnt[i] <= #DLY `AXI_DATA_GET_CNT_W'h0;
         end
         else if (rd_data_get_cnt[i]>`AXI_DATA_GET_CNT_W'h0) begin
             rd_data_get_cnt[i] <= #DLY rd_data_get_cnt[i] + `AXI_DATA_GET_CNT_W'h1;
         end
     end
-    assign rd_data_get   [i] = rd_valid_buff_r[i] & (rd_data_get_cnt[i]==`AXI_DATA_GET_CNT_W'h12);
+    assign rd_data_get   [i] = rd_valid_buff_r[i] & (rd_data_get_cnt[i]==(MAX_GET_DATA_DLY - rd_id_buff_r[i]));
     assign rd_data_err   [i] = (rd_id_buff_r[i] == `AXI_ID_W'hF) & (rd_curr_index_r[i] == rd_burst_lenth[i]);
 end
 endgenerate
