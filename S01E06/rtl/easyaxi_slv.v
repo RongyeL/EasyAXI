@@ -5,7 +5,7 @@
 // Filename      : easyaxi_slv.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:52
-// Last Modified : 2025-08-05 09:10
+// Last Modified : 2025-08-06 09:25
 // ---------------------------------------------------------------------------------
 // Description   : AXI Slave with burst support up to length 8 and outstanding capability
 //
@@ -54,9 +54,11 @@ wire                     rd_buff_full;
 reg                      rd_valid_buff_r [OST_DEPTH-1:0];
 reg                      rd_result_buff_r[OST_DEPTH-1:0];
 reg                      rd_comp_buff_r  [OST_DEPTH-1:0];
+reg                      rd_clear_buff_r [OST_DEPTH-1:0];
 
 // Bit-vector representations for status flags
 reg  [OST_DEPTH    -1:0] rd_valid_bits;
+reg  [OST_DEPTH    -1:0] rd_set_bits;
 reg  [OST_DEPTH    -1:0] rd_result_bits;
 reg  [OST_DEPTH    -1:0] rd_clear_bits;
 
@@ -107,23 +109,31 @@ wire                       rd_wrap_en       [OST_DEPTH-1:0]; // Wrap happen
 //--------------------------------------------------------------------------------
 // Pointer Management
 //--------------------------------------------------------------------------------
-always @(posedge clk or negedge rst_n) begin
-    if (~rst_n) begin
-        rd_set_ptr_r  <= #DLY {OST_CNT_W{1'b0}};
-    end
-    else if (rd_buff_set) begin
-        rd_set_ptr_r  <= #DLY ((rd_set_ptr_r + 1) < OST_DEPTH) ? rd_set_ptr_r + 1 : {OST_CNT_W{1'b0}};
-    end
-end
-
-always @(posedge clk or negedge rst_n) begin
-    if (~rst_n) begin
-        rd_clr_ptr_r <= #DLY {OST_CNT_W{1'b0}};
-    end
-    else if (rd_buff_clr) begin
-        rd_clr_ptr_r <= #DLY ((rd_clr_ptr_r + 1) < OST_DEPTH) ? rd_clr_ptr_r + 1 : {OST_CNT_W{1'b0}};
-    end
-end
+// always @(posedge clk or negedge rst_n) begin
+    // if (~rst_n) begin
+        // rd_set_ptr_r  <= #DLY {OST_CNT_W{1'b0}};
+    // end
+    // else if (rd_buff_set) begin
+        // rd_set_ptr_r  <= #DLY ((rd_set_ptr_r + 1) < OST_DEPTH) ? rd_set_ptr_r + 1 : {OST_CNT_W{1'b0}};
+    // end
+// end
+EASYAXI_ARB #(
+    .DEEP_NUM(OST_DEPTH)
+) U_RD_CLEAR_ARB (
+    .clk      (clk           ),
+    .rst_n    (rst_n         ),
+    .queue_i  (rd_clear_bits ),
+    .sche_en  (rd_buff_clr   ),
+    .pointer_o(rd_clr_ptr_r  )
+);
+// always @(posedge clk or negedge rst_n) begin
+    // if (~rst_n) begin
+        // rd_clr_ptr_r <= #DLY {OST_CNT_W{1'b0}};
+    // end
+    // else if (rd_buff_clr) begin
+        // rd_clr_ptr_r <= #DLY ((rd_clr_ptr_r + 1) < OST_DEPTH) ? rd_clr_ptr_r + 1 : {OST_CNT_W{1'b0}};
+    // end
+// end
 EASYAXI_ARB #(
     .DEEP_NUM(OST_DEPTH)
 ) U_RD_RESULT_ARB (
@@ -133,6 +143,7 @@ EASYAXI_ARB #(
     .sche_en  (rd_result_en   ),
     .pointer_o(rd_result_ptr_r)
 );
+
 // always @(posedge clk or negedge rst_n) begin
     // if (~rst_n) begin
         // rd_result_ptr_r <= #DLY {OST_CNT_W{1'b0}};
@@ -156,6 +167,16 @@ always @(*) begin : GEN_VLD_VEC
     end
 end
 assign rd_buff_full = &rd_valid_bits;
+assign rd_set_bits = ~rd_valid_bits;
+EASYAXI_ARB #(
+    .DEEP_NUM(OST_DEPTH)
+) U_RD_SET_ARB (
+    .clk      (clk           ),
+    .rst_n    (rst_n         ),
+    .queue_i  (rd_set_bits   ),
+    .sche_en  (rd_buff_set   ),
+    .pointer_o(rd_set_ptr_r  )
+);
 
 always @(*) begin : GEN_RESULT_VEC
     integer i;
@@ -165,7 +186,13 @@ always @(*) begin : GEN_RESULT_VEC
     end
 end
 
-assign axi_slv_arready = ~rd_buff_full;
+always @(*) begin : GEN_CLEAR_VEC
+    integer i;
+    rd_clear_bits = {OST_DEPTH{1'b0}};
+    for (i=0; i<OST_DEPTH; i=i+1) begin
+        rd_clear_bits[i] = rd_clear_buff_r[i];
+    end
+end
 
 assign rd_dec_miss    = 1'b0/*  (axi_slv_araddr != REG_ADDR) */;
 assign rd_result_en   = axi_slv_rvalid & axi_slv_rready;
@@ -221,6 +248,16 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: OST_BUFFERS
         end
         else if (rd_result_en && rd_result_last && (rd_result_ptr_r == i)) begin
             rd_comp_buff_r[i] <= #DLY 1'b0;
+        end
+    end
+
+    // Clear flag buffer
+    always @(posedge clk or negedge rst_n) begin
+        if (~rst_n) begin
+            rd_clear_buff_r[i] <= #DLY 1'b0;
+        end
+        else begin
+            rd_clear_buff_r[i] <= #DLY rd_valid_buff_r[i] & ~rd_result_buff_r[i] & ~rd_comp_buff_r[i];
         end
     end
 end
@@ -394,6 +431,7 @@ endgenerate
 //--------------------------------------------------------------------------------
 // Output Signal
 //--------------------------------------------------------------------------------
+assign axi_slv_arready = ~rd_buff_full;
 assign axi_slv_rvalid  = rd_valid_buff_r [rd_result_ptr_r] & rd_result_buff_r[rd_result_ptr_r];
 assign axi_slv_rid     = rd_id_buff_r    [rd_result_ptr_r];
 assign axi_slv_rdata   = rd_data_buff_r  [rd_result_ptr_r][((rd_data_cnt_r[rd_result_ptr_r])*`AXI_DATA_W) +: `AXI_DATA_W];

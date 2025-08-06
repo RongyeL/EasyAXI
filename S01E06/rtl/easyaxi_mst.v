@@ -5,7 +5,7 @@
 // Filename      : easyaxi_mst.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:45
-// Last Modified : 2025-08-05 08:54
+// Last Modified : 2025-08-06 09:15
 // ---------------------------------------------------------------------------------
 // Description   : AXI Master with burst support up to length 8 and outstanding capability
 //
@@ -57,10 +57,13 @@ wire                                  rd_buff_full;
 reg                                   rd_valid_buff_r[OST_DEPTH-1:0];
 reg                                   rd_req_buff_r  [OST_DEPTH-1:0];
 reg                                   rd_comp_buff_r [OST_DEPTH-1:0];
+reg                                   rd_clear_buff_r[OST_DEPTH-1:0];
 
 // Bit-vector representations for status flags
 reg  [OST_DEPTH    -1:0] rd_valid_bits;
+reg  [OST_DEPTH    -1:0] rd_set_bits;
 reg  [OST_DEPTH    -1:0] rd_req_bits;
+reg  [OST_DEPTH    -1:0] rd_clear_bits;
 
 // Buffer management pointers
 reg  [OST_CNT_W    -1:0] rd_set_ptr_r;
@@ -89,32 +92,32 @@ reg  [REQ_CNT_W -1:0] rd_req_cnt_r;       // Completed request counter
 //--------------------------------------------------------------------------------
 // Pointer Management
 //--------------------------------------------------------------------------------
-always @(posedge clk or negedge rst_n) begin
-    if (~rst_n) begin
-        rd_set_ptr_r  <= #DLY {OST_CNT_W{1'b0}};
-    end
-    else if (rd_buff_set) begin
-        rd_set_ptr_r  <= #DLY ((rd_set_ptr_r + 1) < OST_DEPTH) ? rd_set_ptr_r + 1 : {OST_CNT_W{1'b0}};
-    end
-end
+// always @(posedge clk or negedge rst_n) begin
+    // if (~rst_n) begin
+        // rd_set_ptr_r  <= #DLY {OST_CNT_W{1'b0}};
+    // end
+    // else if (rd_buff_set) begin
+        // rd_set_ptr_r  <= #DLY ((rd_set_ptr_r + 1) < OST_DEPTH) ? rd_set_ptr_r + 1 : {OST_CNT_W{1'b0}};
+    // end
+// end
 
-always @(posedge clk or negedge rst_n) begin
-    if (~rst_n) begin
-        rd_clr_ptr_r <= #DLY {OST_CNT_W{1'b0}};
-    end
-    else if (rd_buff_clr) begin
-        rd_clr_ptr_r <= #DLY ((rd_clr_ptr_r + 1) < OST_DEPTH) ? rd_clr_ptr_r + 1 : {OST_CNT_W{1'b0}};
-    end
-end
+// always @(posedge clk or negedge rst_n) begin
+    // if (~rst_n) begin
+        // rd_clr_ptr_r <= #DLY {OST_CNT_W{1'b0}};
+    // end
+    // else if (rd_buff_clr) begin
+        // rd_clr_ptr_r <= #DLY ((rd_clr_ptr_r + 1) < OST_DEPTH) ? rd_clr_ptr_r + 1 : {OST_CNT_W{1'b0}};
+    // end
+// end
 
-always @(posedge clk or negedge rst_n) begin
-    if (~rst_n) begin
-        rd_req_ptr_r  <= #DLY {OST_CNT_W{1'b0}};
-    end
-    else if (rd_req_en) begin
-        rd_req_ptr_r  <= #DLY ((rd_req_ptr_r + 1) < OST_DEPTH) ? rd_req_ptr_r + 1 : {OST_CNT_W{1'b0}};
-    end
-end
+// always @(posedge clk or negedge rst_n) begin
+    // if (~rst_n) begin
+        // rd_req_ptr_r  <= #DLY {OST_CNT_W{1'b0}};
+    // end
+    // else if (rd_req_en) begin
+        // rd_req_ptr_r  <= #DLY ((rd_req_ptr_r + 1) < OST_DEPTH) ? rd_req_ptr_r + 1 : {OST_CNT_W{1'b0}};
+    // end
+// end
 
 //--------------------------------------------------------------------------------
 // Main Ctrl
@@ -130,7 +133,50 @@ always @(*) begin : GEN_VLD_VEC
     end
 end
 assign rd_buff_full = &rd_valid_bits;
+assign rd_set_bits = ~rd_valid_bits;
+EASYAXI_ARB #(
+    .DEEP_NUM(OST_DEPTH)
+) U_RD_SET_ARB (
+    .clk      (clk           ),
+    .rst_n    (rst_n         ),
+    .queue_i  (rd_set_bits   ),
+    .sche_en  (rd_buff_set   ),
+    .pointer_o(rd_set_ptr_r  )
+);
 
+always @(*) begin : GEN_REQ_VEC
+    integer i;
+    rd_req_bits = {OST_DEPTH{1'b0}};
+    for (i=0; i<OST_DEPTH; i=i+1) begin
+        rd_req_bits[i] = rd_req_buff_r[i];
+    end
+end
+EASYAXI_ARB #(
+    .DEEP_NUM(OST_DEPTH)
+) U_RD_REQ_ARB (
+    .clk      (clk         ),
+    .rst_n    (rst_n       ),
+    .queue_i  (rd_req_bits ),
+    .sche_en  (rd_req_en   ),
+    .pointer_o(rd_req_ptr_r)
+);
+
+always @(*) begin : GEN_CLEAR_VEC
+    integer i;
+    rd_clear_bits = {OST_DEPTH{1'b0}};
+    for (i=0; i<OST_DEPTH; i=i+1) begin
+        rd_clear_bits[i] = rd_clear_buff_r[i];
+    end
+end
+EASYAXI_ARB #(
+    .DEEP_NUM(OST_DEPTH)
+) U_RD_CLEAR_ARB (
+    .clk      (clk           ),
+    .rst_n    (rst_n         ),
+    .queue_i  (rd_clear_bits ),
+    .sche_en  (rd_buff_clr   ),
+    .pointer_o(rd_clr_ptr_r  )
+);
 assign rd_req_en      = axi_mst_arvalid & axi_mst_arready;  // AR handshake
 assign rd_result_en   = axi_mst_rvalid & axi_mst_rready;    // R handshake
 assign rd_result_id   = axi_mst_rid;                       // Current RID
@@ -177,6 +223,16 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: OST_BUFFERS
             rd_comp_buff_r[i] <= #DLY 1'b0;
         end
     end
+
+    // Clear flag buffer
+    always @(posedge clk or negedge rst_n) begin
+        if (~rst_n) begin
+            rd_clear_buff_r[i] <= #DLY 1'b0;
+        end
+        else begin
+            rd_clear_buff_r[i] <= #DLY rd_valid_buff_r[i] & ~rd_req_buff_r[i] & ~rd_comp_buff_r[i];
+        end
+    end
 end
 endgenerate
 
@@ -194,7 +250,7 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: AR_PAYLOAD
             rd_burst_buff_r [i] <= #DLY `AXI_BURST_INCR;
         end
         else if (rd_buff_set && (rd_set_ptr_r == i)) begin
-            rd_id_buff_r    [i] <= #DLY i;
+            rd_id_buff_r    [i] <= #DLY rd_req_cnt_r[`AXI_ID_W-1:0];
             // Burst configuration
             case (i[1:0])  // Use i for case selection
                 3'b000: begin  // INCR burst, len=4
@@ -309,7 +365,7 @@ always @(posedge clk or negedge rst_n) begin
     if (~rst_n) begin
         rd_req_cnt_r  <= #DLY {REQ_CNT_W{1'b0}};
     end
-    else if (rd_req_en) begin
+    else if (rd_buff_set) begin
         rd_req_cnt_r <= #DLY rd_req_cnt_r + 1;
     end
 end
@@ -318,14 +374,6 @@ end
 // Output Signal
 //--------------------------------------------------------------------------------
 assign done = (rd_req_cnt_r == {REQ_CNT_W{1'b1}});  // All requests completed
-
-always @(*) begin : GEN_REQ_VEC
-    integer i;
-    rd_req_bits = {OST_DEPTH{1'b0}};
-    for (i=0; i<OST_DEPTH; i=i+1) begin
-        rd_req_bits[i] = rd_req_buff_r[i];
-    end
-end
 
 assign axi_mst_arvalid = |rd_req_bits;
 assign axi_mst_arid    = rd_id_buff_r    [rd_req_ptr_r];
