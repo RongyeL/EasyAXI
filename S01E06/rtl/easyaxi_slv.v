@@ -5,7 +5,7 @@
 // Filename      : easyaxi_slv.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:52
-// Last Modified : 2025-08-06 09:25
+// Last Modified : 2025-08-06 09:36
 // ---------------------------------------------------------------------------------
 // Description   : AXI Slave with burst support up to length 8 and outstanding capability
 //
@@ -41,7 +41,7 @@ localparam MAX_BURST_LEN = 8;  // Maximum burst length support
 localparam BURST_CNT_W   = $clog2(MAX_BURST_LEN);  // Maximum burst length cnt width
 localparam REG_ADDR      = 16'h0000;  // Default register address
 localparam OST_CNT_W     = OST_DEPTH == 1 ? 1 : $clog2(OST_DEPTH);      // Outstanding counter width
-localparam MAX_GET_DATA_DLY = `AXI_DATA_GET_CNT_W'h18;      // Outstanding counter width
+localparam MAX_GET_DATA_DLY = `AXI_DATA_GET_CNT_W'h1F;      // Outstanding counter width
 
 //--------------------------------------------------------------------------------
 // Inner Signal 
