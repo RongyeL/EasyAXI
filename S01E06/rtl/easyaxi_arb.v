@@ -5,7 +5,7 @@
 // Filename      : easyaxi_arb.v
 // Author        : Rongye
 // Created On    : 2025-08-04 08:29
-// Last Modified : 2025-08-04 09:22
+// Last Modified : 2025-08-08 05:34
 // ---------------------------------------------------------------------------------
 // Description   : Round-robin arbiter with combinational index output
 //
@@ -13,11 +13,11 @@
 module EASYAXI_ARB #(
     parameter DEEP_NUM = 8
 )(
-    input  wire                clk,        // System clock
-    input  wire                rst_n,      // Asynchronous active-low reset
-    input  wire [DEEP_NUM-1:0] queue_i,    // Request queue input
-    input  wire                sche_en,    // Scheduling enable signal
-    output wire  [$clog2(DEEP_NUM)-1:0] pointer_o   // Grant output (index, combinational)
+    input  wire                        clk,        // System clock
+    input  wire                        rst_n,      // Asynchronous active-low reset
+    input  wire [DEEP_NUM        -1:0] queue_i,    // Request queue input
+    input  wire                        sche_en,    // Scheduling enable signal
+    output wire [$clog2(DEEP_NUM)-1:0] pointer_o   // Grant output (index, combinational)
 );
 
 // Internal signals

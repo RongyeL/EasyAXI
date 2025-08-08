@@ -2,7 +2,7 @@ Magic 271485
 Revision Verdi_O-2018.09-SP2
 
 ; Window Layout <x> <y> <width> <height> <signalwidth> <valuewidth>
-viewPort 0 27 1853 690 240 264
+viewPort 0 27 1853 679 240 264
 
 ; File list:
 ; openDirFile [-d delimiter] [-s time_offset] [-rf auto_bus_rule_file] path_name file_name
@@ -18,8 +18,8 @@ signalSpacing 5
 windowTimeUnit 1ns
 
 ; waveform viewport range
-zoom 0.000000 3808.811000 1n
-cursor 2770.000000
+zoom 0.000000 5808.611000 1n
+cursor 810.000000
 marker 0.000000
 
 ; user define markers
@@ -27,7 +27,7 @@ marker 0.000000
 ; visible top row signal index
 top 0
 ; marker line index
-markerPos 17
+markerPos 23
 
 ; event list
 ; addEvent event_name event_expression
@@ -67,6 +67,12 @@ addSignal -h 15 -holdScope axi_mst_rdata[31:0]
 addSignal -h 15 -holdScope axi_mst_rresp[1:0]
 addSignal -h 15 -holdScope axi_mst_rlast
 addGroup "G2"
+addSignal -h 15 /TESTBENCH/U_EASYAXI_TOP/U_EASYAXI_SLV/rd_result_bits[15:0]
+addSignal -h 15 -holdScope rd_result_en
+addSignal -h 15 -holdScope rd_result_ptr_r[3:0]
+addGroup "G3"
+addSignal -h 15 /TESTBENCH/U_EASYAXI_TOP/U_EASYAXI_SLV/rd_result_buff_r[15:0]
+addGroup "G4"
 
 ; getSignalForm Scope Hierarchy Status
 ; active file of getSignalForm

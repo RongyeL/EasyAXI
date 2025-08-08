@@ -5,7 +5,7 @@
 // Filename      : easyaxi_slv.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:52
-// Last Modified : 2025-08-06 09:36
+// Last Modified : 2025-08-08 05:16
 // ---------------------------------------------------------------------------------
 // Description   : AXI Slave with burst support up to length 8 and outstanding capability
 //
@@ -58,15 +58,15 @@ reg                      rd_clear_buff_r [OST_DEPTH-1:0];
 
 // Bit-vector representations for status flags
 reg  [OST_DEPTH    -1:0] rd_valid_bits;
-reg  [OST_DEPTH    -1:0] rd_set_bits;
+wire [OST_DEPTH    -1:0] rd_set_bits;
 reg  [OST_DEPTH    -1:0] rd_result_bits;
 reg  [OST_DEPTH    -1:0] rd_clear_bits;
 
 
 // Buffer management pointers
-reg  [OST_CNT_W    -1:0] rd_set_ptr_r;
-reg  [OST_CNT_W    -1:0] rd_clr_ptr_r;
-reg  [OST_CNT_W    -1:0] rd_result_ptr_r;
+wire [OST_CNT_W    -1:0] rd_set_ptr_r;
+wire [OST_CNT_W    -1:0] rd_clr_ptr_r;
+wire [OST_CNT_W    -1:0] rd_result_ptr_r;
 
 // Outstanding transaction payload buffers
 reg  [`AXI_LEN_W   -1:0] rd_curr_index_r [OST_DEPTH-1:0];
