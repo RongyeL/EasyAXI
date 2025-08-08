@@ -5,7 +5,7 @@
 // Filename      : easyaxi_slv.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:52
-// Last Modified : 2025-08-08 05:16
+// Last Modified : 2025-08-08 07:00
 // ---------------------------------------------------------------------------------
 // Description   : AXI Slave with burst support up to length 8 and outstanding capability
 //
@@ -41,7 +41,7 @@ localparam MAX_BURST_LEN = 8;  // Maximum burst length support
 localparam BURST_CNT_W   = $clog2(MAX_BURST_LEN);  // Maximum burst length cnt width
 localparam REG_ADDR      = 16'h0000;  // Default register address
 localparam OST_CNT_W     = OST_DEPTH == 1 ? 1 : $clog2(OST_DEPTH);      // Outstanding counter width
-localparam MAX_GET_DATA_DLY = `AXI_DATA_GET_CNT_W'h1F;      // Outstanding counter width
+localparam MAX_GET_DATA_DLY = `AXI_DATA_GET_CNT_W'h18;      // Outstanding counter width
 
 //--------------------------------------------------------------------------------
 // Inner Signal 
@@ -119,12 +119,12 @@ wire                       rd_wrap_en       [OST_DEPTH-1:0]; // Wrap happen
 // end
 EASYAXI_ARB #(
     .DEEP_NUM(OST_DEPTH)
-) U_RD_CLEAR_ARB (
+) U_RD_SET_ARB (
     .clk      (clk           ),
     .rst_n    (rst_n         ),
-    .queue_i  (rd_clear_bits ),
-    .sche_en  (rd_buff_clr   ),
-    .pointer_o(rd_clr_ptr_r  )
+    .queue_i  (rd_set_bits   ),
+    .sche_en  (rd_buff_set   ),
+    .pointer_o(rd_set_ptr_r  )
 );
 // always @(posedge clk or negedge rst_n) begin
     // if (~rst_n) begin
@@ -136,12 +136,12 @@ EASYAXI_ARB #(
 // end
 EASYAXI_ARB #(
     .DEEP_NUM(OST_DEPTH)
-) U_RD_RESULT_ARB (
-    .clk      (clk            ),
-    .rst_n    (rst_n          ),
-    .queue_i  (rd_result_bits ),
-    .sche_en  (rd_result_en   ),
-    .pointer_o(rd_result_ptr_r)
+) U_RD_CLEAR_ARB (
+    .clk      (clk           ),
+    .rst_n    (rst_n         ),
+    .queue_i  (rd_clear_bits ),
+    .sche_en  (rd_buff_clr   ),
+    .pointer_o(rd_clr_ptr_r  )
 );
 
 // always @(posedge clk or negedge rst_n) begin
@@ -152,6 +152,15 @@ EASYAXI_ARB #(
         // rd_result_ptr_r <= #DLY ((rd_result_ptr_r + 1) < OST_DEPTH) ? rd_result_ptr_r + 1 : {OST_CNT_W{1'b0}};
     // end
 // end
+EASYAXI_ARB #(
+    .DEEP_NUM(OST_DEPTH)
+) U_RD_RESULT_ARB (
+    .clk      (clk            ),
+    .rst_n    (rst_n          ),
+    .queue_i  (rd_result_bits ),
+    .sche_en  (rd_result_en   ),
+    .pointer_o(rd_result_ptr_r)
+);
 
 //--------------------------------------------------------------------------------
 // Main Ctrl
@@ -168,15 +177,6 @@ always @(*) begin : GEN_VLD_VEC
 end
 assign rd_buff_full = &rd_valid_bits;
 assign rd_set_bits = ~rd_valid_bits;
-EASYAXI_ARB #(
-    .DEEP_NUM(OST_DEPTH)
-) U_RD_SET_ARB (
-    .clk      (clk           ),
-    .rst_n    (rst_n         ),
-    .queue_i  (rd_set_bits   ),
-    .sche_en  (rd_buff_set   ),
-    .pointer_o(rd_set_ptr_r  )
-);
 
 always @(*) begin : GEN_RESULT_VEC
     integer i;
