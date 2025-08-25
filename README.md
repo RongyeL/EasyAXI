@@ -14,6 +14,9 @@ AXI接口数据交互使用的是valid&ready握手机制，理解握手是使用
 ## S01E05: AXI outstanding实现
 以读通道为例，说明AXI OST特性的实现，支持多种OST深度可配。 - [跳转到 S01E05](./S01E05/README.md)
 
+## S01E06: AXI 乱序&交织实现
+读事务为例，说明AXI Out-of-order、Interleave特性的实现。 - [跳转到 S01E06](./S01E06/README.md)
+
 ## 注：
 1. 通过`git clone https://github.com/RongyeL/EasyAXI.git --depth 1`获取本系列视频的项目文件;
 2. 在编译或仿真前，需要在`EasyAXI/S01EXX`路径下，执行`source script/project.sh`，通过该脚本确定当期项目的根路径；
@@ -36,3 +39,6 @@ Taking the read channel as an example, explain the implementation of the AXI Bur
 
 ## S01E05: AXI outstanding implementation
 Take the read channel as an example to explain the implementation of the AXI OST feature, supporting multiple OST depth configurations. - [Jump to S01E05](./S01E05/README.md)
+
+## S01E06: AXI Out-of-Order & Interleave Implementation
+This section uses a read transaction as an example to illustrate the implementation of the AXI Out-of-Order and Interleave features. - [Jump to S01E06](./S01E06/README.md)
