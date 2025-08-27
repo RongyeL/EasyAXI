@@ -5,7 +5,7 @@
 // Filename      : easyaxi_mst.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:45
-// Last Modified : 2025-08-25 08:16
+// Last Modified : 2025-08-27 09:09
 // ---------------------------------------------------------------------------------
 // Description   : AXI Master with burst support up to length 8 and outstanding capability
 //
@@ -69,6 +69,7 @@ reg  [OST_DEPTH    -1:0] rd_clear_bits;
 wire [OST_CNT_W    -1:0] rd_set_ptr_r;
 wire [OST_CNT_W    -1:0] rd_clr_ptr_r;
 wire [OST_CNT_W    -1:0] rd_req_ptr_r;
+wire [OST_CNT_W    -1:0] rd_result_ptr_r;
 
 // Outstanding transaction payload buffers
 reg  [`AXI_ID_W    -1:0] rd_id_buff_r   [OST_DEPTH-1:0];
@@ -85,7 +86,6 @@ wire [OST_DEPTH                 -1:0] rd_resp_err;                    // Error f
 
 wire                  rd_req_en;          // AR handshake
 wire                  rd_result_en;       // R handshake
-wire [`AXI_ID_W -1:0] rd_result_id;       // Current RID
 wire                  rd_result_last;     // RLAST indicator
 reg  [REQ_CNT_W -1:0] rd_req_cnt_r;       // Completed request counter
 
@@ -179,7 +179,6 @@ end
 
 assign rd_req_en      = axi_mst_arvalid & axi_mst_arready;  // AR handshake
 assign rd_result_en   = axi_mst_rvalid & axi_mst_rready;    // R handshake
-assign rd_result_id   = axi_mst_rid;                       // Current RID
 assign rd_result_last = axi_mst_rlast;                     // Burst end flag
 
 genvar i;
@@ -219,7 +218,7 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: OST_BUFFERS
         else if (rd_buff_set && (rd_set_ptr_r == i)) begin
             rd_comp_buff_r[i] <= #DLY 1'b1;
         end
-        else if (rd_result_en && rd_result_last && (rd_result_id == rd_id_buff_r[i])) begin
+        else if (rd_result_en && rd_result_last && (rd_result_ptr_r == i)) begin
             rd_comp_buff_r[i] <= #DLY 1'b0;
         end
     end
@@ -323,7 +322,7 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: R_PAYLOAD
         if (~rst_n) begin
             rd_resp_buff_r[i] <= #DLY {`AXI_RESP_W{1'b0}};
         end
-        else if (rd_result_en && (rd_result_id == rd_id_buff_r[i])) begin
+        else if (rd_result_en && (rd_result_ptr_r == i)) begin
             rd_resp_buff_r[i] <= #DLY (axi_mst_rresp > rd_resp_buff_r[i]) ? axi_mst_rresp 
                                                                           : rd_resp_buff_r[i];
         end
@@ -339,7 +338,7 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: R_PAYLOAD
         else if (rd_buff_set && (rd_set_ptr_r == i)) begin
             rd_data_cnt_r[i]  <= #DLY {BURST_CNT_W{1'b0}};
         end
-        else if (rd_result_en && (rd_result_id == rd_id_buff_r[i])) begin
+        else if (rd_result_en && (rd_result_ptr_r == i)) begin
             rd_data_cnt_r[i] <= #DLY rd_data_cnt_r[i] + 1;
         end
     end
@@ -352,7 +351,7 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: R_PAYLOAD
         else if (rd_buff_set && (rd_set_ptr_r == i)) begin
             rd_data_buff_r[i] <= #DLY {(`AXI_DATA_W*MAX_BURST_LEN){1'b0}};
         end
-        else if (rd_result_en && (rd_result_id == rd_id_buff_r[i])) begin
+        else if (rd_result_en && (rd_result_ptr_r == i)) begin
             rd_data_buff_r[i][(rd_data_cnt_r[i]*`AXI_DATA_W) +: `AXI_DATA_W] <= #DLY axi_mst_rdata;
         end
     end
@@ -374,11 +373,10 @@ end
 //--------------------------------------------------------------------------------
 // RESP ID ORDER CTRL
 //--------------------------------------------------------------------------------
-wire [`AXI_ID_W -1:0] rd_result_ptr;       // Current RID
 EASYAXI_ORDER #(
     .OST_DEPTH(OST_DEPTH),
     .ID_WIDTH (`AXI_ID_W)
-) U_EASYAXI_RD_ORDER (
+) U_EASYAXI_MST_RD_ORDER (
     .clk        (clk             ),
     .rst_n      (rst_n           ),
 
@@ -392,7 +390,8 @@ EASYAXI_ORDER #(
     .resp_id    (axi_mst_rid     ),
     .resp_last  (axi_mst_rlast   ),
 
-    .resp_ptr   (rd_result_ptr        )
+    .resp_ptr   (rd_result_ptr_r ),
+    .resp_bits  (                )
 );
 //--------------------------------------------------------------------------------
 // Output Signal

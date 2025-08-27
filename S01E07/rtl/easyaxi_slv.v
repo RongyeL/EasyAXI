@@ -5,7 +5,7 @@
 // Filename      : easyaxi_slv.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:52
-// Last Modified : 2025-08-08 07:00
+// Last Modified : 2025-08-27 09:04
 // ---------------------------------------------------------------------------------
 // Description   : AXI Slave with burst support up to length 8 and outstanding capability
 //
@@ -61,12 +61,14 @@ reg  [OST_DEPTH    -1:0] rd_valid_bits;
 wire [OST_DEPTH    -1:0] rd_set_bits;
 reg  [OST_DEPTH    -1:0] rd_result_bits;
 reg  [OST_DEPTH    -1:0] rd_clear_bits;
+wire [OST_DEPTH    -1:0] rd_order_bits;
 
 
 // Buffer management pointers
 wire [OST_CNT_W    -1:0] rd_set_ptr_r;
 wire [OST_CNT_W    -1:0] rd_clr_ptr_r;
 wire [OST_CNT_W    -1:0] rd_result_ptr_r;
+wire [OST_CNT_W    -1:0] rd_result_order_r;
 
 // Outstanding transaction payload buffers
 reg  [`AXI_LEN_W   -1:0] rd_curr_index_r [OST_DEPTH-1:0];
@@ -157,7 +159,7 @@ EASYAXI_ARB #(
 ) U_RD_RESULT_ARB (
     .clk      (clk            ),
     .rst_n    (rst_n          ),
-    .queue_i  (rd_result_bits ),
+    .queue_i  (rd_result_bits & rd_order_bits),
     .sche_en  (rd_result_en   ),
     .pointer_o(rd_result_ptr_r)
 );
@@ -428,6 +430,30 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: RD_DATA_PROC_SIM
     assign rd_data_err   [i] = (rd_id_buff_r[i] == `AXI_ID_W'hF) & (rd_curr_index_r[i] == rd_burst_lenth[i]);
 end
 endgenerate
+
+//--------------------------------------------------------------------------------
+// RESP ID ORDER CTRL
+//--------------------------------------------------------------------------------
+EASYAXI_ORDER #(
+    .OST_DEPTH(OST_DEPTH),
+    .ID_WIDTH (`AXI_ID_W)
+) U_EASYAXI_SLV_RD_ORDER (
+    .clk        (clk             ),
+    .rst_n      (rst_n           ),
+
+    .req_valid  (axi_slv_arvalid ),
+    .req_ready  (axi_slv_arready ),
+    .req_id     (axi_slv_arid    ),
+    .req_ptr    (rd_set_ptr_r    ),
+
+    .resp_valid (axi_slv_rvalid  ),
+    .resp_ready (axi_slv_rready  ),
+    .resp_id    (axi_slv_rid     ),
+    .resp_last  (axi_slv_rlast   ),
+
+    .resp_ptr   (                ),
+    .resp_bits  (rd_order_bits   )
+);
 //--------------------------------------------------------------------------------
 // Output Signal
 //--------------------------------------------------------------------------------
