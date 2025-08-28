@@ -5,12 +5,11 @@
 // Filename      : easyaxi_order.v
 // Author        : Rongye
 // Created On    : 2025-08-25 07:35
-// Last Modified : 2025-08-27 09:04
+// Last Modified : 2025-08-28 08:48
 // ---------------------------------------------------------------------------------
 // Description   : 
 //   Tracks outstanding AXI transactions using per‑ID FIFOs.
 //   Push on request handshake, pop on last‑beat response.
-//   Additionally generates a bitmap of all current FIFO outputs ORed together.
 // -FHDR----------------------------------------------------------------------------
 module EASYAXI_ORDER #(
     parameter OST_DEPTH = 16, 
@@ -28,7 +27,7 @@ module EASYAXI_ORDER #(
     input  wire                         resp_ready,
     input  wire [ID_WIDTH-1:0]          resp_id,
     input  wire                         resp_last,
-    // Outputs
+
     output wire [$clog2(OST_DEPTH)-1:0] resp_ptr,
     output reg  [OST_DEPTH-1:0]         resp_bits
 );
@@ -94,10 +93,10 @@ endgenerate
 
 // OR all bitmaps into one combined output
 always @(*) begin
-integer m;
+integer k;
     resp_bits = {OST_DEPTH{1'b0}};
-    for (m=0; m<ID_NUM; m=m+1) begin
-        resp_bits = resp_bits | fifo_bitmap[m];
+    for (k=0; k<ID_NUM; k=k+1) begin
+        resp_bits = resp_bits | fifo_bitmap[k];
     end
 end
 

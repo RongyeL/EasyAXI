@@ -5,7 +5,7 @@
 // Filename      : easyaxi_slv.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:52
-// Last Modified : 2025-08-27 09:04
+// Last Modified : 2025-08-28 08:46
 // ---------------------------------------------------------------------------------
 // Description   : AXI Slave with burst support up to length 8 and outstanding capability
 //
@@ -26,6 +26,7 @@ module EASYAXI_SLV #(
     input  wire  [`AXI_LEN_W   -1:0] axi_slv_arlen,
     input  wire  [`AXI_SIZE_W  -1:0] axi_slv_arsize,
     input  wire  [`AXI_BURST_W -1:0] axi_slv_arburst,
+    input  wire  [`AXI_USER_W  -1:0] axi_slv_aruser,
 
 // AXI R Channel
     output wire                      axi_slv_rvalid,
@@ -33,7 +34,8 @@ module EASYAXI_SLV #(
     output wire  [`AXI_ID_W    -1:0] axi_slv_rid,
     output wire  [`AXI_DATA_W  -1:0] axi_slv_rdata,
     output wire  [`AXI_RESP_W  -1:0] axi_slv_rresp,
-    output wire                      axi_slv_rlast
+    output wire                      axi_slv_rlast,
+    output wire  [`AXI_USER_W  -1:0] axi_slv_ruser
 );
 
 localparam DLY           = 0.1;
@@ -41,7 +43,7 @@ localparam MAX_BURST_LEN = 8;  // Maximum burst length support
 localparam BURST_CNT_W   = $clog2(MAX_BURST_LEN);  // Maximum burst length cnt width
 localparam REG_ADDR      = 16'h0000;  // Default register address
 localparam OST_CNT_W     = OST_DEPTH == 1 ? 1 : $clog2(OST_DEPTH);      // Outstanding counter width
-localparam MAX_GET_DATA_DLY = `AXI_DATA_GET_CNT_W'h18;      // Outstanding counter width
+localparam MAX_GET_DATA_DLY = `AXI_DATA_GET_CNT_W'h1C;      // Outstanding counter width
 
 //--------------------------------------------------------------------------------
 // Inner Signal 
@@ -77,6 +79,7 @@ reg  [`AXI_ADDR_W  -1:0] rd_addr_buff_r  [OST_DEPTH-1:0];
 reg  [`AXI_LEN_W   -1:0] rd_len_buff_r   [OST_DEPTH-1:0];
 reg  [`AXI_SIZE_W  -1:0] rd_size_buff_r  [OST_DEPTH-1:0];
 reg  [`AXI_BURST_W -1:0] rd_burst_buff_r [OST_DEPTH-1:0];
+reg  [`AXI_USER_W  -1:0] rd_user_buff_r  [OST_DEPTH-1:0];
 
 // Read data buffers (supports MAX_BURST_LEN beats per OST entry)    
 reg  [MAX_BURST_LEN             -1:0] rd_data_vld_r  [OST_DEPTH-1:0];
@@ -111,14 +114,6 @@ wire                       rd_wrap_en       [OST_DEPTH-1:0]; // Wrap happen
 //--------------------------------------------------------------------------------
 // Pointer Management
 //--------------------------------------------------------------------------------
-// always @(posedge clk or negedge rst_n) begin
-    // if (~rst_n) begin
-        // rd_set_ptr_r  <= #DLY {OST_CNT_W{1'b0}};
-    // end
-    // else if (rd_buff_set) begin
-        // rd_set_ptr_r  <= #DLY ((rd_set_ptr_r + 1) < OST_DEPTH) ? rd_set_ptr_r + 1 : {OST_CNT_W{1'b0}};
-    // end
-// end
 EASYAXI_ARB #(
     .DEEP_NUM(OST_DEPTH)
 ) U_RD_SET_ARB (
@@ -128,14 +123,7 @@ EASYAXI_ARB #(
     .sche_en  (rd_buff_set   ),
     .pointer_o(rd_set_ptr_r  )
 );
-// always @(posedge clk or negedge rst_n) begin
-    // if (~rst_n) begin
-        // rd_clr_ptr_r <= #DLY {OST_CNT_W{1'b0}};
-    // end
-    // else if (rd_buff_clr) begin
-        // rd_clr_ptr_r <= #DLY ((rd_clr_ptr_r + 1) < OST_DEPTH) ? rd_clr_ptr_r + 1 : {OST_CNT_W{1'b0}};
-    // end
-// end
+
 EASYAXI_ARB #(
     .DEEP_NUM(OST_DEPTH)
 ) U_RD_CLEAR_ARB (
@@ -146,14 +134,6 @@ EASYAXI_ARB #(
     .pointer_o(rd_clr_ptr_r  )
 );
 
-// always @(posedge clk or negedge rst_n) begin
-    // if (~rst_n) begin
-        // rd_result_ptr_r <= #DLY {OST_CNT_W{1'b0}};
-    // end
-    // else if (rd_result_en & rd_result_last) begin
-        // rd_result_ptr_r <= #DLY ((rd_result_ptr_r + 1) < OST_DEPTH) ? rd_result_ptr_r + 1 : {OST_CNT_W{1'b0}};
-    // end
-// end
 EASYAXI_ARB #(
     .DEEP_NUM(OST_DEPTH)
 ) U_RD_RESULT_ARB (
@@ -277,6 +257,7 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: AR_PAYLOAD
             rd_len_buff_r[i]   <= #DLY {`AXI_LEN_W{1'b0}};
             rd_size_buff_r[i]  <= #DLY {`AXI_SIZE_W{1'b0}};
             rd_burst_buff_r[i] <= #DLY {`AXI_BURST_W{1'b0}};
+            rd_user_buff_r[i]  <= #DLY {`AXI_USER_W{1'b0}};
         end
         else if (rd_buff_set && (rd_set_ptr_r == i)) begin
             rd_id_buff_r[i]    <= #DLY axi_slv_arid;
@@ -284,6 +265,7 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: AR_PAYLOAD
             rd_len_buff_r[i]   <= #DLY axi_slv_arlen;
             rd_size_buff_r[i]  <= #DLY axi_slv_arsize;
             rd_burst_buff_r[i] <= #DLY axi_slv_arburst;
+            rd_user_buff_r[i]  <= #DLY axi_slv_aruser;
         end
     end
 end
@@ -463,5 +445,6 @@ assign axi_slv_rid     = rd_id_buff_r    [rd_result_ptr_r];
 assign axi_slv_rdata   = rd_data_buff_r  [rd_result_ptr_r][((rd_data_cnt_r[rd_result_ptr_r])*`AXI_DATA_W) +: `AXI_DATA_W];
 assign axi_slv_rresp   = rd_resp_buff_r  [rd_result_ptr_r];
 assign axi_slv_rlast   = axi_slv_rvalid & (rd_data_cnt_r[rd_result_ptr_r] == rd_len_buff_r[rd_result_ptr_r]);
+assign axi_slv_ruser   = rd_user_buff_r  [rd_result_ptr_r];
 
 endmodule

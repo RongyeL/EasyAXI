@@ -5,7 +5,7 @@
 // Filename      : easyaxi_define.v
 // Author        : Rongye
 // Created On    : 2022-12-27 21:06
-// Last Modified : 2025-05-24 01:16
+// Last Modified : 2025-08-28 08:39
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -24,6 +24,7 @@
 `define AXI_QOS_W          4
 `define AXI_REGION_W       4
 `define AXI_RESP_W         2
+`define AXI_USER_W         5
 
 `define AXI_SIZE_1B        3'b000
 `define AXI_SIZE_2B        3'b001

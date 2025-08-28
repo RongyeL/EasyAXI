@@ -2,11 +2,11 @@ Magic 271485
 Revision Verdi_O-2018.09-SP2
 
 ; Window Layout <x> <y> <width> <height> <signalwidth> <valuewidth>
-viewPort 0 27 1853 679 240 264
+viewPort 0 27 1853 502 240 264
 
 ; File list:
 ; openDirFile [-d delimiter] [-s time_offset] [-rf auto_bus_rule_file] path_name file_name
-openDirFile -d / "" "/home/myeda/project/EasyAXI/S01E06/verification/sim/sim_out.fsdb"
+openDirFile -d / "" "/home/myeda/project/EasyAXI/S01E07/verification/sim/sim_out.fsdb"
 
 ; file time scale:
 ; fileTimeScale ### s|ms|us|ns|ps
@@ -18,16 +18,18 @@ signalSpacing 5
 windowTimeUnit 1ns
 
 ; waveform viewport range
-zoom 0.000000 5808.611000 1n
-cursor 810.000000
+zoom 0.000000 5566.211000 1n
+cursor 2490.000000
 marker 0.000000
 
 ; user define markers
 ; userMarker time_pos marker_name color linestyle
+userMarker 2430 axid_0_last ID_GREEN5 long_dashed
+
 ; visible top row signal index
-top 0
+top 13
 ; marker line index
-markerPos 23
+markerPos 18
 
 ; event list
 ; addEvent event_name event_expression
@@ -48,7 +50,7 @@ curSTATUS ByChange
 
 
 addGroup "G1"
-activeDirFile "" "/home/myeda/project/EasyAXI/S01E06/verification/sim/sim_out.fsdb"
+activeDirFile "" "/home/myeda/project/EasyAXI/S01E07/verification/sim/sim_out.fsdb"
 addSignal -h 15 /TESTBENCH/U_EASYAXI_TOP/clk
 addSignal -h 15 -holdScope rst_n
 addSignal -h 15 -holdScope enable
@@ -62,17 +64,24 @@ addSignal -h 15 -holdScope axi_mst_arsize[2:0]
 addSignal -h 15 -holdScope axi_mst_arburst[1:0]
 addSignal -h 15 -holdScope axi_mst_rvalid
 addSignal -h 15 -holdScope axi_mst_rready
-addSignal -h 15 -holdScope axi_mst_rid[3:0]
 addSignal -h 15 -holdScope axi_mst_rdata[31:0]
 addSignal -h 15 -holdScope axi_mst_rresp[1:0]
-addSignal -h 15 -holdScope axi_mst_rlast
+addSignal -c ID_ORANGE6 -ls solid -lw 1 -h 15 -holdScope axi_mst_rid[3:0]
+addSignal -c ID_ORANGE6 -ls solid -lw 1 -h 15 -holdScope axi_mst_rlast
+addSignal -c ID_ORANGE6 -ls solid -lw 1 -h 15 -UNSIGNED -UDEC /TESTBENCH/U_EASYAXI_TOP/U_EASYAXI_MST/axi_mst_ruser[4:0]
 addGroup "G2"
-addSignal -h 15 /TESTBENCH/U_EASYAXI_TOP/U_EASYAXI_SLV/rd_result_bits[15:0]
-addSignal -h 15 -holdScope rd_result_en
-addSignal -h 15 -holdScope rd_result_ptr_r[3:0]
+addSignal -expanded -h 15 /TESTBENCH/U_EASYAXI_TOP/U_EASYAXI_SLV/rd_id_buff_r[15:0]
+addSignal -expanded -h 15 -holdScope rd_order_bits[15:0]
+addSignal -expanded -h 15 -holdScope rd_result_bits[15:0]
+addSignal -c ID_ORANGE5 -ls solid -lw 1 -h 15 -holdScope rd_valid_bits[15]
+addSignal -c ID_YELLOW5 -ls solid -lw 1 -h 15 -holdScope rd_valid_bits[0]
+addSignal -c ID_ORANGE5 -ls solid -lw 1 -h 15 -holdScope rd_result_bits[15]
+addSignal -c ID_YELLOW5 -ls solid -lw 1 -h 15 -holdScope rd_result_bits[0]
+addSignal -c ID_ORANGE5 -ls solid -lw 1 -h 15 -holdScope rd_id_buff_r[15][3:0]
+addSignal -c ID_YELLOW5 -ls solid -lw 1 -h 15 -holdScope rd_id_buff_r[0][3:0]
+addSignal -c ID_ORANGE5 -ls solid -lw 1 -h 15 -holdScope rd_order_bits[15]
+addSignal -c ID_YELLOW5 -ls solid -lw 1 -h 15 -holdScope rd_order_bits[0]
 addGroup "G3"
-addSignal -h 15 /TESTBENCH/U_EASYAXI_TOP/U_EASYAXI_SLV/rd_result_buff_r[15:0]
-addGroup "G4"
 
 ; getSignalForm Scope Hierarchy Status
 ; active file of getSignalForm

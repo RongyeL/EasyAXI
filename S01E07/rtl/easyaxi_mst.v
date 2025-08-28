@@ -5,7 +5,7 @@
 // Filename      : easyaxi_mst.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:45
-// Last Modified : 2025-08-27 09:09
+// Last Modified : 2025-08-28 08:46
 // ---------------------------------------------------------------------------------
 // Description   : AXI Master with burst support up to length 8 and outstanding capability
 //
@@ -27,6 +27,7 @@ module EASYAXI_MST #(
     output wire  [`AXI_LEN_W   -1:0] axi_mst_arlen,
     output wire  [`AXI_SIZE_W  -1:0] axi_mst_arsize,
     output wire  [`AXI_BURST_W -1:0] axi_mst_arburst,
+    output wire  [`AXI_USER_W  -1:0] axi_mst_aruser,
 
 // AXI R Channel
     input  wire                      axi_mst_rvalid,
@@ -34,7 +35,8 @@ module EASYAXI_MST #(
     input  wire  [`AXI_ID_W    -1:0] axi_mst_rid,
     input  wire  [`AXI_DATA_W  -1:0] axi_mst_rdata,
     input  wire  [`AXI_RESP_W  -1:0] axi_mst_rresp,
-    input  wire                      axi_mst_rlast
+    input  wire                      axi_mst_rlast,
+    input  wire  [`AXI_USER_W  -1:0] axi_mst_ruser
 );
 
 localparam DLY = 0.1;
@@ -77,6 +79,7 @@ reg  [`AXI_ADDR_W  -1:0] rd_addr_buff_r [OST_DEPTH-1:0];
 reg  [`AXI_LEN_W   -1:0] rd_len_buff_r  [OST_DEPTH-1:0];
 reg  [`AXI_SIZE_W  -1:0] rd_size_buff_r [OST_DEPTH-1:0];
 reg  [`AXI_BURST_W -1:0] rd_burst_buff_r[OST_DEPTH-1:0];
+reg  [`AXI_USER_W  -1:0] rd_user_buff_r [OST_DEPTH-1:0];
     
 // Read data buffers (supports MAX_BURST_LEN beats per OST entry)    
 reg  [`AXI_DATA_W*MAX_BURST_LEN -1:0] rd_data_buff_r [OST_DEPTH-1:0];
@@ -92,14 +95,6 @@ reg  [REQ_CNT_W -1:0] rd_req_cnt_r;       // Completed request counter
 //--------------------------------------------------------------------------------
 // Pointer Management
 //--------------------------------------------------------------------------------
-// always @(posedge clk or negedge rst_n) begin
-    // if (~rst_n) begin
-        // rd_set_ptr_r  <= #DLY {OST_CNT_W{1'b0}};
-    // end
-    // else if (rd_buff_set) begin
-        // rd_set_ptr_r  <= #DLY ((rd_set_ptr_r + 1) < OST_DEPTH) ? rd_set_ptr_r + 1 : {OST_CNT_W{1'b0}};
-    // end
-// end
 assign rd_set_bits = ~rd_valid_bits;
 EASYAXI_ARB #(
     .DEEP_NUM(OST_DEPTH)
@@ -110,14 +105,7 @@ EASYAXI_ARB #(
     .sche_en  (rd_buff_set   ),
     .pointer_o(rd_set_ptr_r  )
 );
-// always @(posedge clk or negedge rst_n) begin
-    // if (~rst_n) begin
-        // rd_clr_ptr_r <= #DLY {OST_CNT_W{1'b0}};
-    // end
-    // else if (rd_buff_clr) begin
-        // rd_clr_ptr_r <= #DLY ((rd_clr_ptr_r + 1) < OST_DEPTH) ? rd_clr_ptr_r + 1 : {OST_CNT_W{1'b0}};
-    // end
-// end
+
 EASYAXI_ARB #(
     .DEEP_NUM(OST_DEPTH)
 ) U_RD_CLEAR_ARB (
@@ -128,14 +116,6 @@ EASYAXI_ARB #(
     .pointer_o(rd_clr_ptr_r  )
 );
 
-// always @(posedge clk or negedge rst_n) begin
-    // if (~rst_n) begin
-        // rd_req_ptr_r  <= #DLY {OST_CNT_W{1'b0}};
-    // end
-    // else if (rd_req_en) begin
-        // rd_req_ptr_r  <= #DLY ((rd_req_ptr_r + 1) < OST_DEPTH) ? rd_req_ptr_r + 1 : {OST_CNT_W{1'b0}};
-    // end
-// end
 EASYAXI_ARB #(
     .DEEP_NUM(OST_DEPTH)
 ) U_RD_REQ_ARB (
@@ -242,15 +222,17 @@ generate
 for (i=0; i<OST_DEPTH; i=i+1) begin: AR_PAYLOAD
     always @(posedge clk or negedge rst_n) begin
         if (~rst_n) begin
-            rd_id_buff_r    [i] <= #DLY{`AXI_ID_W{1'b0}};
-            rd_addr_buff_r  [i] <= #DLY{`AXI_ADDR_W{1'b0}};
-            rd_len_buff_r   [i] <= #DLY{`AXI_LEN_W{1'b0}};
-            rd_size_buff_r  [i] <= #DLY `AXI_SIZE_1B;
-            rd_burst_buff_r [i] <= #DLY `AXI_BURST_INCR;
+            rd_id_buff_r    [i] <= #DLY {`AXI_ID_W{1'b0}};
+            rd_addr_buff_r  [i] <= #DLY {`AXI_ADDR_W{1'b0}};
+            rd_len_buff_r   [i] <= #DLY {`AXI_LEN_W{1'b0}};
+            rd_size_buff_r  [i] <= #DLY  `AXI_SIZE_1B;
+            rd_burst_buff_r [i] <= #DLY  `AXI_BURST_INCR;
+            rd_user_buff_r  [i] <= #DLY {`AXI_USER_W{1'b0}};
         end
         else if (rd_buff_set && (rd_set_ptr_r == i)) begin
             // rd_id_buff_r    [i] <= #DLY i;
             rd_id_buff_r    [i] <= #DLY rd_req_cnt_r[`AXI_ID_W-1:0];
+            rd_user_buff_r  [i] <= #DLY rd_req_cnt_r;
             // Burst configuration
             case (i[1:0])  // Use i for case selection
                 3'b000: begin  // INCR burst, len=4
@@ -404,6 +386,7 @@ assign axi_mst_araddr  = rd_addr_buff_r  [rd_req_ptr_r];
 assign axi_mst_arlen   = rd_len_buff_r   [rd_req_ptr_r];
 assign axi_mst_arsize  = rd_size_buff_r  [rd_req_ptr_r];
 assign axi_mst_arburst = rd_burst_buff_r [rd_req_ptr_r];
+assign axi_mst_aruser  = rd_user_buff_r  [rd_req_ptr_r];
 
 assign axi_mst_rready  = 1'b1;  
 
