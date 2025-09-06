@@ -5,11 +5,11 @@
 // Filename      : easyaxi_order.v
 // Author        : Rongye
 // Created On    : 2025-08-25 07:35
-// Last Modified : 2025-08-28 08:48
+// Last Modified : 2025-09-06 02:03
 // ---------------------------------------------------------------------------------
 // Description   : 
 //   Tracks outstanding AXI transactions using per‑ID FIFOs.
-//   Push on request handshake, pop on last‑beat response.
+//   wr on request handshake, rd on last‑beat response.
 // -FHDR----------------------------------------------------------------------------
 module EASYAXI_ORDER #(
     parameter OST_DEPTH = 16, 
@@ -38,8 +38,8 @@ localparam PTR_WIDTH = $clog2(OST_DEPTH);
 wire [PTR_WIDTH-1:0] fifo_data_out [ID_NUM-1:0];
 wire                 fifo_empty    [ID_NUM-1:0];
 wire                 fifo_full     [ID_NUM-1:0];
-reg                  fifo_push     [ID_NUM-1:0];
-reg                  fifo_pop      [ID_NUM-1:0];
+reg                  fifo_wr       [ID_NUM-1:0];
+reg                  fifo_rd       [ID_NUM-1:0];
 reg  [PTR_WIDTH-1:0] fifo_data_in  [ID_NUM-1:0];
 
 wire [OST_DEPTH-1:0] fifo_bitmap   [ID_NUM-1:0];
@@ -54,8 +54,8 @@ generate
         ) U_EASYAXI_FIFO (
             .clk       (clk             ),
             .rst_n     (rst_n           ),
-            .push      (fifo_push    [i]),
-            .pop       (fifo_pop     [i]),
+            .wr        (fifo_wr      [i]),
+            .rd        (fifo_rd      [i]),
             .data_in   (fifo_data_in [i]),
             .data_out  (fifo_data_out[i]),
             .empty     (fifo_empty   [i]),
@@ -64,20 +64,20 @@ generate
     end
 endgenerate
 
-// Push on request, pop on last response
+// wr on request, rd on last response
 always @(*) begin
     integer j;
     for (j = 0; j < ID_NUM; j = j + 1) begin
-        fifo_push[j]    = 1'b0;
-        fifo_pop[j]     = 1'b0;
+        fifo_wr[j]      = 1'b0;
+        fifo_rd[j]      = 1'b0;
         fifo_data_in[j] = {PTR_WIDTH{1'b0}};
     end
     if (req_valid && req_ready) begin
-        fifo_push[req_id]    = 1'b1;
+        fifo_wr[req_id]      = 1'b1;
         fifo_data_in[req_id] = req_ptr;
     end
     if (resp_valid && resp_ready && ~fifo_empty[resp_id] && resp_last) begin
-        fifo_pop[resp_id] = 1'b1;
+        fifo_rd[resp_id] = 1'b1;
     end
 end
 
