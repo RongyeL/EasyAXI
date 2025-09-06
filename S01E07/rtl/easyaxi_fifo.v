@@ -5,7 +5,7 @@
 // Filename      : easyaxi_fifo.v
 // Author        : Rongye
 // Created On    : 2025-08-25 07:53
-// Last Modified : 2025-09-06 02:08
+// Last Modified : 2025-09-06 07:45
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -71,8 +71,14 @@ always @(posedge clk or negedge rst_n) begin
         end
     end
 end
-always @(posedge clk) begin 
-    if (wr) begin 
+always @(posedge clk or negedge rst_n) begin
+    integer j;
+    if (~rst_n) begin
+        for (j = 0; j < DEPTH; j = j + 1) begin
+            fifo[j]  <= #DLY 0;
+        end
+    end 
+    else if (wr) begin 
         fifo[rd_ptr] <= #DLY data_in; 
     end 
 end
