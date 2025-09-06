@@ -2,7 +2,7 @@
 1. 读事务为例，说明AXI ID同保序特性实现；
 2. SLV侧，同ID请求按收请求顺序返回响应；
 3. MST侧，同ID请求按发请求顺序接收响应；
-
+ 
 ---
 
 # S01E07: AXI Same-ID ORDER Implementation
