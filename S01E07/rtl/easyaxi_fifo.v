@@ -5,7 +5,7 @@
 // Filename      : easyaxi_fifo.v
 // Author        : Rongye
 // Created On    : 2025-08-25 07:53
-// Last Modified : 2025-09-06 01:59
+// Last Modified : 2025-09-06 02:08
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -30,35 +30,51 @@ localparam DLY = 0.1;
 localparam PTR_WIDTH = $clog2(DEPTH);
 
 reg [DATA_WIDTH-1:0] fifo[DEPTH-1:0];
-reg [PTR_WIDTH -1:0] wr_ptr,rd_ptr;
-reg [PTR_WIDTH   :0] count;
+reg [PTR_WIDTH -1:0] wr_ptr, rd_ptr;
+reg                  wr_wrap, rd_wrap;
+
+wire ptr_equal  = (wr_ptr == rd_ptr);
+wire wrap_equal = (wr_wrap == rd_wrap);
+
+assign empty = ptr_equal && wrap_equal;
+assign full  = ptr_equal && ~wrap_equal;
+
+assign data_out = fifo[rd_ptr];
 
 always @(posedge clk or negedge rst_n) begin
     if (~rst_n) begin
-        wr_ptr <= #DLY 0;
-        rd_ptr <= #DLY 0;
-        count  <= #DLY 0;
+        wr_ptr  <= #DLY 0;
+        wr_wrap <= #DLY 0;
     end 
-    else begin
-        if (wr && ~full) begin
-            rd_ptr <= #DLY rd_ptr + 1;
-            count  <= #DLY count + 1;
-        end
-        if (rd && ~empty) begin
+    else if (wr) begin
+        if (wr_ptr == DEPTH - 1) begin
+            wr_ptr  <= #DLY 0;
+            wr_wrap <= #DLY ~wr_wrap;
+        end 
+        else begin
             wr_ptr <= #DLY wr_ptr + 1;
-            count  <= #DLY count - 1;
         end
     end
 end
-always @(posedge clk) begin
-    if (wr && !full) begin
-        fifo[rd_ptr] <= #DLY data_in;
+always @(posedge clk or negedge rst_n) begin
+    if (~rst_n) begin
+        rd_ptr  <= #DLY 0;
+        rd_wrap <= #DLY 0;
+    end 
+    else if (rd) begin
+        if (rd_ptr == DEPTH - 1) begin
+            rd_ptr  <= #DLY 0;
+            rd_wrap <= #DLY ~rd_wrap;
+        end 
+        else begin
+            rd_ptr <= #DLY rd_ptr + 1;
+        end
     end
 end
-
-assign empty    = (count == 0);
-assign full     = (count == DEPTH);
-assign data_out = fifo[wr_ptr];
-
+always @(posedge clk) begin 
+    if (wr) begin 
+        fifo[rd_ptr] <= #DLY data_in; 
+    end 
+end
 endmodule
 
