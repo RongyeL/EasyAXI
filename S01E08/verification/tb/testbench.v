@@ -5,7 +5,7 @@
 // Filename      : tb_rvseed.v
 // Author        : Rongye
 // Created On    : 2022-03-25 04:18
-// Last Modified : 2025-12-03 12:35
+// Last Modified : 2025-12-03 13:05
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -44,16 +44,25 @@ always #(SIM_PERIOD/2) clk = ~clk;
 task reset;                // reset 1 clock
     begin
         rd_en = 0; 
+        wr_en = 0; 
         rst_n = 0; 
         #(SIM_PERIOD * 1);
         rst_n = 1;
         #(SIM_PERIOD * 5 + 1);
         rd_en = 1; 
+        #(SIM_PERIOD * 5 + 1);
+        wr_en = 1; 
     end
 endtask
 
 always begin
    wait (rd_done == 1) begin
+       #(SIM_PERIOD * 3);
+       rd_en = 0; 
+       #(SIM_PERIOD * 150 + 1);
+       // $finish;
+   end
+   wait (wr_done == 1) begin
        #(SIM_PERIOD * 3);
        rd_en = 0; 
        #(SIM_PERIOD * 150 + 1);

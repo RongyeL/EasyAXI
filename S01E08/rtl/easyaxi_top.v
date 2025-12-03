@@ -5,7 +5,7 @@
 // Filename      : easyaxi.v
 // Author        : Rongye
 // Created On    : 2025-02-05 05:04
-// Last Modified : 2025-12-03 12:34
+// Last Modified : 2025-12-03 13:04
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -60,6 +60,56 @@ EASYAXI_MST_RD_CTRL U_EASYAXI_MST_RD_CTRL (
     .axi_mst_rresp   (axi_mst_rresp   ), // i
     .axi_mst_rlast   (axi_mst_rlast   ), // i
     .axi_mst_ruser   (axi_mst_ruser   )  // i
+);
+
+wire                        axi_mst_awvalid;
+wire                        axi_mst_awready;
+wire  [`AXI_ID_W    -1:0]   axi_mst_awid;
+wire  [`AXI_ADDR_W  -1:0]   axi_mst_awaddr;
+wire  [`AXI_LEN_W   -1:0]   axi_mst_awlen;
+wire  [`AXI_SIZE_W  -1:0]   axi_mst_awsize;
+wire  [`AXI_BURST_W -1:0]   axi_mst_awburst;
+wire  [`AXI_USER_W  -1:0]   axi_mst_awuser;
+
+wire                        axi_mst_wvalid;
+wire                        axi_mst_wready;
+wire  [`AXI_DATA_W  -1:0]   axi_mst_wdata;
+wire  [`AXI_DATA_W/8-1:0]   axi_mst_wstrb;
+wire                        axi_mst_wlast;
+wire  [`AXI_USER_W  -1:0]   axi_mst_wuser;
+
+wire                        axi_mst_bvalid;
+wire                        axi_mst_bready;
+wire  [`AXI_ID_W    -1:0]   axi_mst_bid;
+wire  [`AXI_RESP_W  -1:0]   axi_mst_bresp;
+wire  [`AXI_USER_W  -1:0]   axi_mst_buser;
+EASYAXI_MST_WR_CTRL U_EASYAXI_MST_WR_CTRL (
+    .clk             (clk             ), // i
+    .rst_n           (rst_n           ), // i
+    .wr_en           (wr_en           ), // i
+    .wr_done         (wr_done         ), // o
+
+    .axi_mst_awvalid (axi_mst_awvalid ), // o
+    .axi_mst_awready (axi_mst_awready ), // i
+    .axi_mst_awid    (axi_mst_awid    ), // o
+    .axi_mst_awaddr  (axi_mst_awaddr  ), // o
+    .axi_mst_awlen   (axi_mst_awlen   ), // o
+    .axi_mst_awsize  (axi_mst_awsize  ), // o
+    .axi_mst_awburst (axi_mst_awburst ), // o
+    .axi_mst_awuser  (axi_mst_awuser  ), // o
+
+    .axi_mst_wvalid  (axi_mst_wvalid  ), // o
+    .axi_mst_wready  (axi_mst_wready  ), // i
+    .axi_mst_wdata   (axi_mst_wdata   ), // o
+    .axi_mst_wstrb   (axi_mst_wstrb   ), // o
+    .axi_mst_wlast   (axi_mst_wlast   ), // o
+    .axi_mst_wuser   (axi_mst_wuser   ), // o
+
+    .axi_mst_bvalid  (axi_mst_bvalid  ), // i
+    .axi_mst_bready  (axi_mst_bready  ), // o
+    .axi_mst_bid     (axi_mst_bid     ), // i
+    .axi_mst_bresp   (axi_mst_bresp   ), // i
+    .axi_mst_buser   (axi_mst_buser   )  // i
 );
 //--------------------------------------------------------------------------------
 // Inst Slave
