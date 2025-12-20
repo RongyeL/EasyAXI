@@ -5,7 +5,7 @@
 // Filename      : easyaxi_mst_wr_ctrl.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:45
-// Last Modified : 2025-12-03 13:03
+// Last Modified : 2025-12-20 06:50
 // ---------------------------------------------------------------------------------
 // Description   : AXI Master with burst support up to length 8 and outstanding capability
 //
@@ -302,21 +302,21 @@ end
 endgenerate
 
 //--------------------------------------------------------------------------------
-// AXI B Payload Buffer
+// AXI W Payload Buffer
 //--------------------------------------------------------------------------------
 generate
-for (i=0; i<OST_DEPTH; i=i+1) begin: R_PAYLOAD
-    always @(posedge clk or negedge rst_n) begin
-        if (~rst_n) begin
-            wr_resp_buff_r[i] <= #DLY {`AXI_RESP_W{1'b0}};
-        end
-        else if (wr_result_en && (wr_result_ptr_r == i)) begin
-            wr_resp_buff_r[i] <= #DLY (axi_mst_bresp > wr_resp_buff_r[i]) ? axi_mst_bresp 
-                                                                          : wr_resp_buff_r[i];
-        end
-    end
-    assign wr_resp_err[i] = (wr_resp_buff_r[i] == `AXI_RESP_SLVERR) | 
-                            (wr_resp_buff_r[i] == `AXI_RESP_DECERR);
+for (i=0; i<OST_DEPTH; i=i+1) begin: W_PAYLOAD
+    // always @(posedge clk or negedge rst_n) begin
+        // if (~rst_n) begin
+            // wr_resp_buff_r[i] <= #DLY {`AXI_RESP_W{1'b0}};
+        // end
+        // else if (wr_result_en && (wr_result_ptr_r == i)) begin
+            // wr_resp_buff_r[i] <= #DLY (axi_mst_bresp > wr_resp_buff_r[i]) ? axi_mst_bresp 
+                                                                          // : wr_resp_buff_r[i];
+        // end
+    // end
+    // assign wr_resp_err[i] = (wr_resp_buff_r[i] == `AXI_RESP_SLVERR) | 
+                            // (wr_resp_buff_r[i] == `AXI_RESP_DECERR);
 
     // Burst data beat counter
     always @(posedge clk or negedge rst_n) begin
@@ -334,13 +334,10 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: R_PAYLOAD
     // Burst data buffer
     always @(posedge clk or negedge rst_n) begin
         if (~rst_n) begin
-            wr_data_buff_r[i] <= #DLY {(`AXI_DATA_W*MAX_BURST_LEN){1'b0}};
+            wr_data_buff_r[i*(`AXI_DATA_W*MAX_BURST_LEN)] <= #DLY {(`AXI_DATA_W*MAX_BURST_LEN){1'b0}};
         end
         else if (wr_buff_set && (wr_set_ptr_r == i)) begin
-            wr_data_buff_r[i] <= #DLY {(`AXI_DATA_W*MAX_BURST_LEN){1'b0}};
-        end
-        else if (wr_result_en && (wr_result_ptr_r == i)) begin
-            wr_data_buff_r[i][(wr_data_cnt_r[i]*`AXI_DATA_W) +: `AXI_DATA_W] <= #DLY axi_mst_wdata;
+            wr_data_buff_r[i*(`AXI_DATA_W*MAX_BURST_LEN)] <= #DLY {MAX_BURST_LEN{{`AXI_DATA_W-`AXI_ID_W-`AXI_ADDR_W{1'b0}},wr_id_buff_r[i],wr_curr_addr_r[i]}};
         end
     end
 end
@@ -364,22 +361,22 @@ end
 EASYAXI_ORDER #(
     .OST_DEPTH(OST_DEPTH),
     .ID_WIDTH (`AXI_ID_W)
-) U_EASYAXI_MST_WR_ORDER (
+) U_EASYAXI_SLV_RD_ORDER (
     .clk        (clk             ),
     .rst_n      (rst_n           ),
 
     .req_valid  (axi_mst_awvalid ),
     .req_ready  (axi_mst_awready ),
     .req_id     (axi_mst_awid    ),
-    .req_ptr    (wr_req_ptr_r    ),
+    .req_ptr    (rd_set_ptr_r    ),
 
-    .resp_valid (axi_mst_wvalid  ),
-    .resp_ready (axi_mst_wready  ),
-    .resp_id    ({`AXI_ID_W{1'b0}}     ),
-    .resp_last  (axi_mst_wlast   ),
+    .resp_valid (axi_slv_rvalid  ),
+    .resp_ready (axi_slv_rready  ),
+    .resp_id    (axi_slv_rid     ),
+    .resp_last  (axi_slv_rlast   ),
 
-    .resp_ptr   (wr_result_ptr_r ),
-    .resp_bits  (                )
+    .resp_ptr   (                ),
+    .resp_bits  (rd_order_bits   )
 );
 //--------------------------------------------------------------------------------
 // Output Signal
