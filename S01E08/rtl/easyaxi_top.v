@@ -5,7 +5,7 @@
 // Filename      : easyaxi.v
 // Author        : Rongye
 // Created On    : 2025-02-05 05:04
-// Last Modified : 2025-12-20 06:39
+// Last Modified : 2026-01-01 00:58
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -99,7 +99,7 @@ EASYAXI_MST_WR_CTRL U_EASYAXI_MST_WR_CTRL (
     .axi_mst_awuser  (axi_mst_awuser  ), // o
 
     .axi_mst_wvalid  (axi_mst_wvalid  ), // o
-    .axi_mst_wready  (axi_mst_wready  ), // i
+    .axi_mst_wready  (1'b1/* axi_mst_wready */  ), // i
     .axi_mst_wdata   (axi_mst_wdata   ), // o
     .axi_mst_wstrb   (axi_mst_wstrb   ), // o
     .axi_mst_wlast   (axi_mst_wlast   ), // o
