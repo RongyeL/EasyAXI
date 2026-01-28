@@ -5,7 +5,7 @@
 // Filename      : easyaxi_mst_rd_ctrl.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:45
-// Last Modified : 2026-01-01 00:20
+// Last Modified : 2026-01-28 03:47
 // ---------------------------------------------------------------------------------
 // Description   : AXI Master with burst support up to length 8 and outstanding capability
 //
@@ -45,7 +45,7 @@ localparam DLY = 0.1;
 localparam MAX_BURST_LEN = 8;       // Maximum supported burst length
 localparam BURST_CNT_W   = $clog2(MAX_BURST_LEN); 
 localparam OST_CNT_W     = OST_DEPTH == 1 ? 1 : $clog2(OST_DEPTH); 
-localparam MAX_REQ_NUM   = 32;       // Maximum number of requests
+localparam MAX_REQ_NUM   = 16;       // Maximum number of requests
 localparam REQ_CNT_W     = $clog2(MAX_REQ_NUM); 
 
 //--------------------------------------------------------------------------------

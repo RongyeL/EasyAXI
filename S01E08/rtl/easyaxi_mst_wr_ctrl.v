@@ -5,13 +5,13 @@
 // Filename      : easyaxi_mst_wr_ctrl.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:45
-// Last Modified : 2026-01-01 01:01
+// Last Modified : 2026-01-28 03:46
 // ---------------------------------------------------------------------------------
 // Description   : AXI Master with burst support up to length 8 and outstanding capability
 //
 // -FHDR----------------------------------------------------------------------------
 module EASYAXI_MST_WR_CTRL #(
-    parameter OST_DEPTH = 4  // Outstanding transaction depth (power of 2)
+    parameter OST_DEPTH = 16  // Outstanding transaction depth (power of 2)
 )(
 // Global
     input  wire                      clk,
@@ -51,7 +51,7 @@ localparam DLY = 0.1;
 localparam MAX_BURST_LEN = 8;       // Maximum supported burst length
 localparam BURST_CNT_W   = $clog2(MAX_BURST_LEN); 
 localparam OST_CNT_W     = OST_DEPTH == 1 ? 1 : $clog2(OST_DEPTH); 
-localparam MAX_REQ_NUM   = 32;       // Maximum number of requests
+localparam MAX_REQ_NUM   = 16;       // Maximum number of requests
 localparam REQ_CNT_W     = $clog2(MAX_REQ_NUM); 
 localparam MAX_GET_DATA_DLY = `AXI_DATA_GET_CNT_W'h1C;      // Outstanding counter width
 
@@ -506,12 +506,12 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 //--------------------------------------------------------------------------------
-// RESP ID ORDER CTRL
+// W ORDER CTRL
 //--------------------------------------------------------------------------------
 EASYAXI_ORDER #(
     .OST_DEPTH(OST_DEPTH),
     .ID_WIDTH (`AXI_ID_W)
-) U_EASYAXI_SLV_WR_ORDER (
+) U_EASYAXI_MST_WR_ORDER (
     .clk        (clk             ),
     .rst_n      (rst_n           ),
 
@@ -526,6 +526,30 @@ EASYAXI_ORDER #(
     .resp_last  (axi_mst_wlast   ),
 
     .resp_ptr   (wr_dat_ptr      ),
+    .resp_bits  (                )
+);
+
+//--------------------------------------------------------------------------------
+// RESP ID ORDER CTRL
+//--------------------------------------------------------------------------------
+EASYAXI_ORDER #(
+    .OST_DEPTH(OST_DEPTH),
+    .ID_WIDTH (`AXI_ID_W)
+) U_EASYAXI_MST_RD_ORDER (
+    .clk        (clk             ),
+    .rst_n      (rst_n           ),
+
+    .req_valid  (axi_mst_awvalid ),
+    .req_ready  (axi_mst_awready ),
+    .req_id     (axi_mst_awid    ),
+    .req_ptr    (wr_req_ptr      ),
+
+    .resp_valid (axi_mst_bvalid  ),
+    .resp_ready (axi_mst_bready  ),
+    .resp_id    (axi_mst_bid     ),
+    .resp_last  (1'b1            ),
+
+    .resp_ptr   (wr_result_ptr   ),
     .resp_bits  (                )
 );
 //--------------------------------------------------------------------------------

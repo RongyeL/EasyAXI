@@ -5,7 +5,7 @@
 // Filename      : easyaxi.v
 // Author        : Rongye
 // Created On    : 2025-02-05 05:04
-// Last Modified : 2026-01-01 00:58
+// Last Modified : 2026-01-28 03:45
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -90,7 +90,7 @@ EASYAXI_MST_WR_CTRL U_EASYAXI_MST_WR_CTRL (
     .wr_done         (wr_done         ), // o
 
     .axi_mst_awvalid (axi_mst_awvalid ), // o
-    .axi_mst_awready (1'b1/* axi_mst_awready */ ), // i
+    .axi_mst_awready (axi_mst_awready ), // i
     .axi_mst_awid    (axi_mst_awid    ), // o
     .axi_mst_awaddr  (axi_mst_awaddr  ), // o
     .axi_mst_awlen   (axi_mst_awlen   ), // o
@@ -99,7 +99,7 @@ EASYAXI_MST_WR_CTRL U_EASYAXI_MST_WR_CTRL (
     .axi_mst_awuser  (axi_mst_awuser  ), // o
 
     .axi_mst_wvalid  (axi_mst_wvalid  ), // o
-    .axi_mst_wready  (1'b1/* axi_mst_wready */  ), // i
+    .axi_mst_wready  (axi_mst_wready  ), // i
     .axi_mst_wdata   (axi_mst_wdata   ), // o
     .axi_mst_wstrb   (axi_mst_wstrb   ), // o
     .axi_mst_wlast   (axi_mst_wlast   ), // o
@@ -151,6 +151,54 @@ EASYAXI_SLV_RD_CTRL U_EASYAXI_SLV_RD_CTRL (
     .axi_slv_rlast   (axi_slv_rlast   ), // o
     .axi_slv_ruser   (axi_slv_ruser   )  // o
 );
+
+wire                        axi_slv_awvalid;
+wire                        axi_slv_awready;
+wire  [`AXI_ID_W    -1:0]   axi_slv_awid;
+wire  [`AXI_ADDR_W  -1:0]   axi_slv_awaddr;
+wire  [`AXI_LEN_W   -1:0]   axi_slv_awlen;
+wire  [`AXI_SIZE_W  -1:0]   axi_slv_awsize;
+wire  [`AXI_BURST_W -1:0]   axi_slv_awburst;
+wire  [`AXI_USER_W  -1:0]   axi_slv_awuser;
+
+wire                        axi_slv_wvalid;
+wire                        axi_slv_wready;
+wire  [`AXI_DATA_W  -1:0]   axi_slv_wdata;
+wire  [`AXI_DATA_W/8-1:0]   axi_slv_wstrb;
+wire                        axi_slv_wlast;
+wire  [`AXI_USER_W  -1:0]   axi_slv_wuser;
+
+wire                        axi_slv_bvalid;
+wire                        axi_slv_bready;
+wire  [`AXI_ID_W    -1:0]   axi_slv_bid;
+wire  [`AXI_RESP_W  -1:0]   axi_slv_bresp;
+wire  [`AXI_USER_W  -1:0]   axi_slv_buser;
+EASYAXI_SLV_WR_CTRL U_EASYAXI_SLV_WR_CTRL (
+    .clk             (clk             ), // i
+    .rst_n           (rst_n           ), // i
+
+    .axi_slv_awvalid (axi_slv_awvalid ), // o
+    .axi_slv_awready (axi_slv_awready ), // i
+    .axi_slv_awid    (axi_slv_awid    ), // o
+    .axi_slv_awaddr  (axi_slv_awaddr  ), // o
+    .axi_slv_awlen   (axi_slv_awlen   ), // o
+    .axi_slv_awsize  (axi_slv_awsize  ), // o
+    .axi_slv_awburst (axi_slv_awburst ), // o
+    .axi_slv_awuser  (axi_slv_awuser  ), // o
+
+    .axi_slv_wvalid  (axi_slv_wvalid  ), // o
+    .axi_slv_wready  (axi_slv_wready  ), // i
+    .axi_slv_wdata   (axi_slv_wdata   ), // o
+    .axi_slv_wstrb   (axi_slv_wstrb   ), // o
+    .axi_slv_wlast   (axi_slv_wlast   ), // o
+    .axi_slv_wuser   (axi_slv_wuser   ), // o
+
+    .axi_slv_bvalid  (axi_slv_bvalid  ), // i
+    .axi_slv_bready  (axi_slv_bready  ), // o
+    .axi_slv_bid     (axi_slv_bid     ), // i
+    .axi_slv_bresp   (axi_slv_bresp   ), // i
+    .axi_slv_buser   (axi_slv_buser   )  // i
+);
 //--------------------------------------------------------------------------------
 // Link Wire
 //--------------------------------------------------------------------------------
@@ -171,4 +219,25 @@ assign axi_mst_rresp  = axi_slv_rresp;
 assign axi_mst_rlast  = axi_slv_rlast;
 assign axi_mst_ruser  = axi_slv_ruser;
 
+assign axi_slv_awvalid = axi_mst_awvalid;
+assign axi_mst_awready = axi_slv_awready;
+assign axi_slv_awid    = axi_mst_awid ;
+assign axi_slv_awaddr  = axi_mst_awaddr;
+assign axi_slv_awlen   = axi_mst_awlen;
+assign axi_slv_awsize  = axi_mst_awsize;
+assign axi_slv_awburst = axi_mst_awburst;
+assign axi_slv_awuser  = axi_mst_awuser;
+
+assign axi_slv_wvalid = axi_mst_wvalid;
+assign axi_mst_wready = axi_slv_wready;
+assign axi_slv_wdata  = axi_mst_wdata;
+assign axi_slv_wstrb  = axi_mst_wstrb;
+assign axi_slv_wlast  = axi_mst_wlast;
+assign axi_slv_wuser  = axi_mst_wuser;
+
+assign axi_mst_bvalid = axi_slv_bvalid;
+assign axi_slv_bready = axi_mst_bready;
+assign axi_mst_bid    = axi_slv_bid;
+assign axi_mst_bresp  = axi_slv_bresp;
+assign axi_mst_buser  = axi_slv_buser;
 endmodule

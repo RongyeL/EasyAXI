@@ -5,7 +5,7 @@
 // Filename      : easyaxi_define.v
 // Author        : Rongye
 // Created On    : 2022-12-27 21:06
-// Last Modified : 2025-08-28 08:39
+// Last Modified : 2026-01-28 03:18
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -46,3 +46,4 @@
 `define AXI_RESP_DECERR    2'b11
 
 `define AXI_DATA_GET_CNT_W 5
+`define AXI_RESP_GET_CNT_W 5
