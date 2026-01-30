@@ -5,7 +5,7 @@
 // Filename      : tb_rvseed.v
 // Author        : Rongye
 // Created On    : 2022-03-25 04:18
-// Last Modified : 2026-01-28 03:45
+// Last Modified : 2026-01-30 04:55
 // ---------------------------------------------------------------------------------
 // Description   : 
 //
@@ -59,13 +59,14 @@ always begin
    wait (rd_done == 1) begin
        #(SIM_PERIOD * 3);
        rd_en = 0; 
-       #(SIM_PERIOD * 150 + 1);
        // $finish;
    end
+end
+always begin
    wait (wr_done == 1) begin
        #(SIM_PERIOD * 3);
        wr_en = 0; 
-       #(SIM_PERIOD * 150 + 1);
+       #(SIM_PERIOD * 200 + 1);
        $finish;
    end
 end

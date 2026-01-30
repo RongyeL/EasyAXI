@@ -5,7 +5,7 @@
 // Filename      : easyaxi_slv_wr_ctrl.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:52
-// Last Modified : 2026-01-28 03:41
+// Last Modified : 2026-01-30 06:06
 // ---------------------------------------------------------------------------------
 // Description   : AXI Slave with burst support up to length 8 and outstanding capability
 //
@@ -43,21 +43,21 @@ module EASYAXI_SLV_WR_CTRL #(
     output wire  [`AXI_USER_W  -1:0] axi_slv_buser
 );
 
-localparam DLY           = 0.1;
-localparam MAX_BURST_LEN = 8;  // Maximum burst length support
-localparam BURST_CNT_W   = $clog2(MAX_BURST_LEN);  // Maximum burst length cnt width
-localparam REG_ADDR      = 16'h0000;  // Default register address
-localparam OST_CNT_W     = OST_DEPTH == 1 ? 1 : $clog2(OST_DEPTH);      // Outstanding counter width
+localparam DLY              = 0.1;
+localparam MAX_BURST_LEN    = 8;  // Maximum burst length support
+localparam BURST_CNT_W      = $clog2(MAX_BURST_LEN);  // Maximum burst length cnt width
+localparam REG_ADDR         = 16'h0000;  // Default register address
+localparam OST_CNT_W        = OST_DEPTH == 1 ? 1 : $clog2(OST_DEPTH);      // Outstanding counter width
 localparam MAX_GET_RESP_DLY = `AXI_RESP_GET_CNT_W'h1F;      // Outstanding counter width
 
 //--------------------------------------------------------------------------------
 // Inner Signal 
 //--------------------------------------------------------------------------------
+// Core control, state tracking, and data buffering signals for write transaction
 wire                     wr_buff_set;         
 wire                     wr_buff_clr;         
 wire                     wr_buff_full;         
 
-// Outstanding request status buffers
 reg                      wr_valid_buff_r [OST_DEPTH-1:0];
 reg                      wr_result_buff_r[OST_DEPTH-1:0];
 reg                      wr_comp_buff_r  [OST_DEPTH-1:0];
@@ -71,14 +71,14 @@ reg  [OST_DEPTH    -1:0] wr_clear_bits;
 wire [OST_DEPTH    -1:0] wr_order_bits;
 
 
-// Buffer management pointers
+// Outstanding buffer pointer management
 wire [OST_CNT_W    -1:0] wr_set_ptr;
 wire [OST_CNT_W    -1:0] wr_clr_ptr;
 wire [OST_CNT_W    -1:0] wr_result_ptr;
 wire [OST_CNT_W    -1:0] wr_result_order_r;
 wire [OST_CNT_W    -1:0] wr_dat_ptr;
 
-// Outstanding transaction payload buffers
+// AXI write transaction payload storage per outstanding entry
 reg  [`AXI_LEN_W   -1:0] wr_curr_index_r [OST_DEPTH-1:0];
 reg  [`AXI_ID_W    -1:0] wr_id_buff_r    [OST_DEPTH-1:0];
 reg  [`AXI_ADDR_W  -1:0] wr_addr_buff_r  [OST_DEPTH-1:0];
@@ -87,40 +87,43 @@ reg  [`AXI_SIZE_W  -1:0] wr_size_buff_r  [OST_DEPTH-1:0];
 reg  [`AXI_BURST_W -1:0] wr_burst_buff_r [OST_DEPTH-1:0];
 reg  [`AXI_USER_W  -1:0] wr_user_buff_r  [OST_DEPTH-1:0];
 
-// Read data buffers (supports MAX_BURST_LEN beats per OST entry)    
+// Hold write data beats and track per-burst progress
 reg  [MAX_BURST_LEN             -1:0] wr_data_vld_r  [OST_DEPTH-1:0];
 reg  [MAX_BURST_LEN*`AXI_DATA_W -1:0] wr_data_buff_r [OST_DEPTH-1:0];
 reg  [BURST_CNT_W               -1:0] wr_data_cnt_r  [OST_DEPTH-1:0]; // Counter for burst data
 reg  [`AXI_RESP_W               -1:0] wr_resp_buff_r [OST_DEPTH-1:0];
 
 
+// Burst address generation and wrap tracking
 reg  [`AXI_ADDR_W  -1:0] wr_curr_addr_r  [OST_DEPTH-1:0];     // Current address
 reg                      wr_wrap_en_r    [OST_DEPTH-1:0];     // Wrap happen Tag
 
+// Write response and data flow control signals
 wire                     wr_dec_miss;         
 wire                     wr_result_en;        
 wire [`AXI_ID_W    -1:0] wr_result_id;        
 
-wire                           wr_data_en;        
-wire                           wr_data_last;        
+wire                     wr_data_en;        
+wire                     wr_data_last;        
 
+// Simulated response/data availability tracking
 reg  [`AXI_DATA_GET_CNT_W-1:0] wr_resp_get_cnt   [OST_DEPTH-1:0];
 wire                           wr_resp_get_cnt_en[OST_DEPTH-1:0];         
 wire                           wr_resp_get       [OST_DEPTH-1:0];         
 wire                           wr_resp_err       [OST_DEPTH-1:0];         
 
-// Burst address calculation
-wire [`AXI_ADDR_W    -1:0] wr_start_addr    [OST_DEPTH-1:0]; // Start address based on axi_addr
-wire [`AXI_LEN_W     -1:0] wr_burst_lenth   [OST_DEPTH-1:0]; // Burst_length
-wire [2**`AXI_SIZE_W -1:0] wr_number_bytes  [OST_DEPTH-1:0]; // Number of bytes
-wire [`AXI_ADDR_W    -1:0] wr_wrap_boundary [OST_DEPTH-1:0]; // Wrap boundary address
-wire [`AXI_ADDR_W    -1:0] wr_aligned_addr  [OST_DEPTH-1:0]; // Aligned address
-
-wire                       wr_wrap_en       [OST_DEPTH-1:0]; // Wrap happen
+// Used to support FIXED / INCR / WRAP burst types
+wire [`AXI_ADDR_W    -1:0] wr_start_addr    [OST_DEPTH-1:0]; 
+wire [`AXI_LEN_W     -1:0] wr_burst_lenth   [OST_DEPTH-1:0]; 
+wire [2**`AXI_SIZE_W -1:0] wr_number_bytes  [OST_DEPTH-1:0]; 
+wire [`AXI_ADDR_W    -1:0] wr_wrap_boundary [OST_DEPTH-1:0]; 
+wire [`AXI_ADDR_W    -1:0] wr_aligned_addr  [OST_DEPTH-1:0]; 
+wire                       wr_wrap_en       [OST_DEPTH-1:0]; 
 
 //--------------------------------------------------------------------------------
 // Pointer Management
 //--------------------------------------------------------------------------------
+assign wr_set_bits  = ~wr_valid_bits;
 EASYAXI_ARB #(
     .DEEP_NUM(OST_DEPTH)
 ) U_WR_SET_ARB (
@@ -128,7 +131,7 @@ EASYAXI_ARB #(
     .rst_n    (rst_n         ),
     .queue_i  (wr_set_bits   ),
     .sche_en  (wr_buff_set   ),
-    .pointer_o(wr_set_ptr  )
+    .pointer_o(wr_set_ptr    )
 );
 
 EASYAXI_ARB #(
@@ -138,7 +141,7 @@ EASYAXI_ARB #(
     .rst_n    (rst_n         ),
     .queue_i  (wr_clear_bits ),
     .sche_en  (wr_buff_clr   ),
-    .pointer_o(wr_clr_ptr  )
+    .pointer_o(wr_clr_ptr    )
 );
 
 EASYAXI_ARB #(
@@ -148,7 +151,7 @@ EASYAXI_ARB #(
     .rst_n    (rst_n          ),
     .queue_i  (wr_result_bits & wr_order_bits),
     .sche_en  (wr_result_en   ),
-    .pointer_o(wr_result_ptr)
+    .pointer_o(wr_result_ptr  )
 );
 
 //--------------------------------------------------------------------------------
@@ -165,7 +168,6 @@ always @(*) begin : GEN_VLD_VEC
     end
 end
 assign wr_buff_full = &wr_valid_bits;
-assign wr_set_bits = ~wr_valid_bits;
 
 always @(*) begin : GEN_RESULT_VEC
     integer i;
@@ -417,31 +419,32 @@ endgenerate
 // W DATA ORDER CTRL
 //--------------------------------------------------------------------------------
 EASYAXI_ORDER #(
-    .OST_DEPTH(OST_DEPTH),
-    .ID_WIDTH (`AXI_ID_W)
+    .OST_DEPTH  (OST_DEPTH  ),
+    .ID_WIDTH   (`AXI_ID_W  )
 ) U_EASYAXI_SLV_WR_DAT_ORDER (
     .clk        (clk             ),
     .rst_n      (rst_n           ),
 
     .req_valid  (axi_slv_awvalid ),
     .req_ready  (axi_slv_awready ),
-    .req_id     ({`AXI_ID_W{1'b0}}/* axi_slv_awid */    ),
+    .req_id     ({`AXI_ID_W{1'b0}}),
     .req_ptr    (wr_set_ptr      ),
 
     .resp_valid (axi_slv_wvalid  ),
     .resp_ready (axi_slv_wready  ),
-    .resp_id    ({`AXI_ID_W{1'b0}}/* axi_slv_wid */     ),
+    .resp_id    ({`AXI_ID_W{1'b0}}),// ID ignored for W ordering
     .resp_last  (axi_slv_wlast   ),
 
     .resp_ptr   (wr_dat_ptr      ),
     .resp_bits  (                )
 );
+
 //--------------------------------------------------------------------------------
 // RESP ID ORDER CTRL
 //--------------------------------------------------------------------------------
 EASYAXI_ORDER #(
-    .OST_DEPTH(OST_DEPTH),
-    .ID_WIDTH (`AXI_ID_W)
+    .OST_DEPTH  (OST_DEPTH  ),
+    .ID_WIDTH   (`AXI_ID_W  )
 ) U_EASYAXI_SLV_WR_RESP_ORDER (
     .clk        (clk             ),
     .rst_n      (rst_n           ),
