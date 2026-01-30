@@ -5,7 +5,7 @@
 // Filename      : easyaxi_slv.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:52
-// Last Modified : 2026-01-28 03:28
+// Last Modified : 2026-01-30 06:46
 // ---------------------------------------------------------------------------------
 // Description   : AXI Slave with burst support up to length 8 and outstanding capability
 //
@@ -37,11 +37,11 @@ module EASYAXI_SLV_RD_CTRL #(
     output wire  [`AXI_USER_W  -1:0] axi_slv_ruser
 );
 
-localparam DLY           = 0.1;
-localparam MAX_BURST_LEN = 8;  // Maximum burst length support
-localparam BURST_CNT_W   = $clog2(MAX_BURST_LEN);  // Maximum burst length cnt width
-localparam REG_ADDR      = 16'h0000;  // Default register address
-localparam OST_CNT_W     = OST_DEPTH == 1 ? 1 : $clog2(OST_DEPTH);      // Outstanding counter width
+localparam DLY              = 0.1;
+localparam MAX_BURST_LEN    = 8;  // Maximum burst length support
+localparam BURST_CNT_W      = $clog2(MAX_BURST_LEN);  // Maximum burst length cnt width
+localparam REG_ADDR         = 16'h0000;  // Default register address
+localparam OST_CNT_W        = OST_DEPTH == 1 ? 1 : $clog2(OST_DEPTH);      // Outstanding counter width
 localparam MAX_GET_DATA_DLY = `AXI_DATA_GET_CNT_W'h1C;      // Outstanding counter width
 
 //--------------------------------------------------------------------------------
@@ -417,7 +417,7 @@ endgenerate
 EASYAXI_ORDER #(
     .OST_DEPTH(OST_DEPTH),
     .ID_WIDTH (`AXI_ID_W)
-) U_EASYAXI_SLV_RD_ORDER (
+) U_EASYAXI_SLV_RRESP_ORDER (
     .clk        (clk             ),
     .rst_n      (rst_n           ),
 

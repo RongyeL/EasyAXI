@@ -5,7 +5,7 @@
 // Filename      : easyaxi_mst_rd_ctrl.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:45
-// Last Modified : 2026-01-28 03:47
+// Last Modified : 2026-01-30 07:20
 // ---------------------------------------------------------------------------------
 // Description   : AXI Master with burst support up to length 8 and outstanding capability
 //
@@ -51,15 +51,15 @@ localparam REQ_CNT_W     = $clog2(MAX_REQ_NUM);
 //--------------------------------------------------------------------------------
 // Inner Signal 
 //--------------------------------------------------------------------------------
-wire                                  rd_buff_set;
-wire                                  rd_buff_clr;
-wire                                  rd_buff_full;
+wire                     rd_buff_set;
+wire                     rd_buff_clr;
+wire                     rd_buff_full;
 
 // Outstanding request status buffers
-reg                                   rd_valid_buff_r[OST_DEPTH-1:0];
-reg                                   rd_req_buff_r  [OST_DEPTH-1:0];
-reg                                   rd_comp_buff_r [OST_DEPTH-1:0];
-reg                                   rd_clear_buff_r[OST_DEPTH-1:0];
+reg                      rd_valid_buff_r[OST_DEPTH-1:0];
+reg                      rd_req_buff_r  [OST_DEPTH-1:0];
+reg                      rd_comp_buff_r [OST_DEPTH-1:0];
+reg                      rd_clear_buff_r[OST_DEPTH-1:0];
 
 // Bit-vector representations for status flags
 reg  [OST_DEPTH    -1:0] rd_valid_bits;
@@ -80,7 +80,12 @@ reg  [`AXI_LEN_W   -1:0] rd_len_buff_r  [OST_DEPTH-1:0];
 reg  [`AXI_SIZE_W  -1:0] rd_size_buff_r [OST_DEPTH-1:0];
 reg  [`AXI_BURST_W -1:0] rd_burst_buff_r[OST_DEPTH-1:0];
 reg  [`AXI_USER_W  -1:0] rd_user_buff_r [OST_DEPTH-1:0];
-    
+
+reg  [`AXI_ADDR_W  -1:0] rd_addr_buff   [OST_DEPTH-1:0];
+reg  [`AXI_LEN_W   -1:0] rd_len_buff    [OST_DEPTH-1:0];
+reg  [`AXI_SIZE_W  -1:0] rd_size_buff   [OST_DEPTH-1:0];
+reg  [`AXI_BURST_W -1:0] rd_burst_buff  [OST_DEPTH-1:0];
+
 // Read data buffers (supports MAX_BURST_LEN beats per OST entry)    
 reg  [`AXI_DATA_W*MAX_BURST_LEN -1:0] rd_data_buff_r [OST_DEPTH-1:0];
 reg  [BURST_CNT_W               -1:0] rd_data_cnt_r  [OST_DEPTH-1:0]; // Counter for burst data
@@ -103,7 +108,7 @@ EASYAXI_ARB #(
     .rst_n    (rst_n         ),
     .queue_i  (rd_set_bits   ),
     .sche_en  (rd_buff_set   ),
-    .pointer_o(rd_set_ptr  )
+    .pointer_o(rd_set_ptr    )
 );
 
 EASYAXI_ARB #(
@@ -113,7 +118,7 @@ EASYAXI_ARB #(
     .rst_n    (rst_n         ),
     .queue_i  (rd_clear_bits ),
     .sche_en  (rd_buff_clr   ),
-    .pointer_o(rd_clr_ptr  )
+    .pointer_o(rd_clr_ptr    )
 );
 
 EASYAXI_ARB #(
@@ -123,7 +128,7 @@ EASYAXI_ARB #(
     .rst_n    (rst_n       ),
     .queue_i  (rd_req_bits ),
     .sche_en  (rd_req_en   ),
-    .pointer_o(rd_req_ptr)
+    .pointer_o(rd_req_ptr  )
 );
 
 //--------------------------------------------------------------------------------
@@ -220,6 +225,40 @@ endgenerate
 //--------------------------------------------------------------------------------
 generate
 for (i=0; i<OST_DEPTH; i=i+1) begin: AR_PAYLOAD
+    always @(*) begin // Burst configuration
+        case (rd_req_cnt_r[1:0])  
+            2'b00: begin  // INCR burst, len=4
+                rd_addr_buff [i] = `AXI_ADDR_W'h0;
+                rd_burst_buff[i] = `AXI_BURST_INCR;
+                rd_len_buff  [i] = `AXI_LEN_W'h3;  
+                rd_size_buff [i] = `AXI_SIZE_4B;
+            end
+            2'b01: begin  // INCR burst, len=4
+                rd_addr_buff [i] = rd_req_cnt_r * `AXI_ADDR_W'h10;
+                rd_burst_buff[i] = `AXI_BURST_INCR;
+                rd_len_buff  [i] = `AXI_LEN_W'h3;  
+                rd_size_buff [i] = `AXI_SIZE_4B;
+            end
+            2'b10: begin  // WRAP burst, len=4
+                rd_addr_buff [i] = `AXI_ADDR_W'h24;
+                rd_burst_buff[i] = `AXI_BURST_WRAP;
+                rd_len_buff  [i] = `AXI_LEN_W'h3;
+                rd_size_buff [i] = `AXI_SIZE_4B;
+            end
+            2'b11: begin  // FIXED burst, len=8
+                rd_addr_buff [i] = `AXI_ADDR_W'h30;
+                rd_burst_buff[i] = `AXI_BURST_FIXED;
+                rd_len_buff  [i] = `AXI_LEN_W'h3;
+                rd_size_buff [i] = `AXI_SIZE_4B;
+            end
+            default: begin  // Default INCR burst, len=4
+                rd_addr_buff [i] = `AXI_ADDR_W'h80;
+                rd_burst_buff[i] = `AXI_BURST_INCR;
+                rd_len_buff  [i] = `AXI_LEN_W'h3;
+                rd_size_buff [i] = `AXI_SIZE_4B;
+            end
+        endcase
+    end
     always @(posedge clk or negedge rst_n) begin
         if (~rst_n) begin
             rd_id_buff_r    [i] <= #DLY {`AXI_ID_W{1'b0}};
@@ -230,66 +269,12 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: AR_PAYLOAD
             rd_user_buff_r  [i] <= #DLY {`AXI_USER_W{1'b0}};
         end
         else if (rd_buff_set && (rd_set_ptr == i)) begin
-            // rd_id_buff_r    [i] <= #DLY i;
             rd_id_buff_r    [i] <= #DLY rd_req_cnt_r[`AXI_ID_W-1:0];
+            rd_addr_buff_r  [i] <= #DLY rd_addr_buff[i];
+            rd_burst_buff_r [i] <= #DLY rd_burst_buff[i];
+            rd_len_buff_r   [i] <= #DLY rd_len_buff[i];  
+            rd_size_buff_r  [i] <= #DLY rd_size_buff[i];
             rd_user_buff_r  [i] <= #DLY rd_req_cnt_r;
-            // Burst configuration
-            case (i[1:0])  // Use i for case selection
-                3'b000: begin  // INCR burst, len=4
-                    rd_addr_buff_r [i] <= #DLY `AXI_ADDR_W'h0;
-                    rd_burst_buff_r[i] <= #DLY `AXI_BURST_INCR;
-                    rd_len_buff_r  [i] <= #DLY `AXI_LEN_W'h3;  
-                    rd_size_buff_r [i] <= #DLY `AXI_SIZE_4B;
-                end
-                3'b001: begin  // INCR burst, len=4
-                    rd_addr_buff_r [i] <= #DLY `AXI_ADDR_W'h10;
-                    rd_burst_buff_r[i] <= #DLY `AXI_BURST_INCR;
-                    rd_len_buff_r  [i] <= #DLY `AXI_LEN_W'h3;  
-                    rd_size_buff_r [i] <= #DLY `AXI_SIZE_4B;
-                end
-                3'b010: begin  // INCR burst, len=4
-                    rd_addr_buff_r [i] <= #DLY `AXI_ADDR_W'h20;
-                    rd_burst_buff_r[i] <= #DLY `AXI_BURST_INCR;
-                    rd_len_buff_r  [i] <= #DLY `AXI_LEN_W'h3;
-                    rd_size_buff_r [i] <= #DLY `AXI_SIZE_4B;
-                end
-                3'b011: begin  // FIXED burst, len=8
-                    rd_addr_buff_r [i] <= #DLY `AXI_ADDR_W'h30;
-                    rd_burst_buff_r[i] <= #DLY `AXI_BURST_FIXED;
-                    rd_len_buff_r  [i] <= #DLY `AXI_LEN_W'h3;
-                    rd_size_buff_r [i] <= #DLY `AXI_SIZE_4B;
-                end
-                3'b100: begin  // WRAP burst, len=4
-                    rd_addr_buff_r [i] <= #DLY `AXI_ADDR_W'h34;  // Must be aligned to 16B for 4x4B
-                    rd_burst_buff_r[i] <= #DLY `AXI_BURST_WRAP;
-                    rd_len_buff_r  [i] <= #DLY `AXI_LEN_W'h3;
-                    rd_size_buff_r [i] <= #DLY `AXI_SIZE_4B;
-                end
-                3'b101: begin  // WRAP burst, len=8
-                    rd_addr_buff_r [i] <= #DLY `AXI_ADDR_W'h38;  // Must be aligned to 32B for 8x4B
-                    rd_burst_buff_r[i] <= #DLY `AXI_BURST_WRAP;
-                    rd_len_buff_r  [i] <= #DLY `AXI_LEN_W'h3;
-                    rd_size_buff_r [i] <= #DLY `AXI_SIZE_4B;
-                end
-                3'b110: begin  // FIXED burst, len=8
-                    rd_addr_buff_r [i] <= #DLY `AXI_ADDR_W'h40;  // Must be aligned to 32B for 8x4B
-                    rd_burst_buff_r[i] <= #DLY `AXI_BURST_FIXED;
-                    rd_len_buff_r  [i] <= #DLY `AXI_LEN_W'h3;
-                    rd_size_buff_r [i] <= #DLY `AXI_SIZE_4B;
-                end
-                3'b111: begin  // INCR burst, len=4
-                    rd_addr_buff_r [i] <= #DLY rd_addr_buff_r [i] + `AXI_ADDR_W'h20;
-                    rd_burst_buff_r[i] <= #DLY `AXI_BURST_INCR;
-                    rd_len_buff_r  [i] <= #DLY `AXI_LEN_W'h3;  
-                    rd_size_buff_r [i] <= #DLY `AXI_SIZE_4B;
-                end
-                default: begin  // Default INCR burst, len=4
-                    rd_addr_buff_r [i] <= #DLY `AXI_ADDR_W'h80;
-                    rd_burst_buff_r[i] <= #DLY `AXI_BURST_INCR;
-                    rd_len_buff_r  [i] <= #DLY `AXI_LEN_W'h3;
-                    rd_size_buff_r [i] <= #DLY `AXI_SIZE_4B;
-                end
-            endcase
         end
     end
 end
@@ -351,34 +336,33 @@ always @(posedge clk or negedge rst_n) begin
         rd_req_cnt_r <= #DLY rd_req_cnt_r + 1;
     end
 end
-
+assign rd_done = (rd_req_cnt_r == {REQ_CNT_W{1'b1}});  // All requests completed
 //--------------------------------------------------------------------------------
 // RESP ID ORDER CTRL
 //--------------------------------------------------------------------------------
 EASYAXI_ORDER #(
     .OST_DEPTH(OST_DEPTH),
     .ID_WIDTH (`AXI_ID_W)
-) U_EASYAXI_MST_RD_ORDER (
+) U_EASYAXI_MST_RRESP_ORDER (
     .clk        (clk             ),
     .rst_n      (rst_n           ),
 
     .req_valid  (axi_mst_arvalid ),
     .req_ready  (axi_mst_arready ),
     .req_id     (axi_mst_arid    ),
-    .req_ptr    (rd_req_ptr    ),
+    .req_ptr    (rd_req_ptr      ),
 
     .resp_valid (axi_mst_rvalid  ),
     .resp_ready (axi_mst_rready  ),
     .resp_id    (axi_mst_rid     ),
     .resp_last  (axi_mst_rlast   ),
 
-    .resp_ptr   (rd_result_ptr ),
+    .resp_ptr   (rd_result_ptr   ),
     .resp_bits  (                )
 );
 //--------------------------------------------------------------------------------
 // Output Signal
 //--------------------------------------------------------------------------------
-assign rd_done = (rd_req_cnt_r == {REQ_CNT_W{1'b1}});  // All requests completed
 
 assign axi_mst_arvalid = |rd_req_bits;
 assign axi_mst_arid    = rd_id_buff_r    [rd_req_ptr];

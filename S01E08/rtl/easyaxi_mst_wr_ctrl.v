@@ -5,7 +5,7 @@
 // Filename      : easyaxi_mst_wr_ctrl.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:45
-// Last Modified : 2026-01-30 06:05
+// Last Modified : 2026-01-30 06:47
 // ---------------------------------------------------------------------------------
 // Description   : AXI Master with burst support up to length 8 and outstanding capability
 //
@@ -97,15 +97,14 @@ reg  [`AXI_ADDR_W  -1:0] wr_addr_buff   [OST_DEPTH-1:0];
 reg  [`AXI_LEN_W   -1:0] wr_len_buff    [OST_DEPTH-1:0];
 reg  [`AXI_SIZE_W  -1:0] wr_size_buff   [OST_DEPTH-1:0];
 reg  [`AXI_BURST_W -1:0] wr_burst_buff  [OST_DEPTH-1:0];
-reg  [`AXI_USER_W  -1:0] wr_user_buff   [OST_DEPTH-1:0];
-
 
 // Write data buffering for burst transmission
 reg  [MAX_BURST_LEN                 -1:0] wr_data_vld_r  [OST_DEPTH-1:0];
 reg  [`AXI_DATA_W*MAX_BURST_LEN     -1:0] wr_data_buff_r [OST_DEPTH-1:0];
 reg  [(`AXI_DATA_W/8)*MAX_BURST_LEN -1:0] wr_strb_buff_r [OST_DEPTH-1:0];
 reg  [BURST_CNT_W                   -1:0] wr_data_cnt_r  [OST_DEPTH-1:0];
-
+reg  [`AXI_RESP_W                   -1:0] wr_resp_buff_r [OST_DEPTH-1:0];
+wire [OST_DEPTH                     -1:0] wr_resp_err;   
 // AXI channel handshake
 wire                   wr_req_en;
 wire                   wr_data_en;
@@ -457,6 +456,25 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: W_PAYLOAD
 end
 endgenerate
 //--------------------------------------------------------------------------------
+// AXI B Payload Buffer
+//--------------------------------------------------------------------------------
+generate
+for (i=0; i<OST_DEPTH; i=i+1) begin: B_PAYLOAD
+    always @(posedge clk or negedge rst_n) begin
+        if (~rst_n) begin
+            wr_resp_buff_r[i] <= #DLY {`AXI_RESP_W{1'b0}};
+        end
+        else if (wr_result_en && (wr_result_ptr == i)) begin
+            wr_resp_buff_r[i] <= #DLY (axi_mst_bresp > wr_resp_buff_r[i]) ? axi_mst_bresp 
+                                                                          : wr_resp_buff_r[i];
+        end
+    end
+    assign wr_resp_err[i] = (wr_resp_buff_r[i] == `AXI_RESP_SLVERR) | 
+                            (wr_resp_buff_r[i] == `AXI_RESP_DECERR);
+end
+endgenerate
+//--------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 // Simulate the data reading process
 //--------------------------------------------------------------------------------
 generate 
@@ -501,7 +519,7 @@ assign wr_done = (wr_req_cnt_r == {REQ_CNT_W{1'b1}});  // All requests send comp
 EASYAXI_ORDER #(
     .OST_DEPTH  (OST_DEPTH  ),
     .ID_WIDTH   (`AXI_ID_W  )
-) U_EASYAXI_MST_WR_ORDER (
+) U_EASYAXI_MST_WDATA_ORDER (
     .clk        (clk             ),
     .rst_n      (rst_n           ),
 
