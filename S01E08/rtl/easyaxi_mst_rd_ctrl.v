@@ -5,7 +5,7 @@
 // Filename      : easyaxi_mst_rd_ctrl.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:45
-// Last Modified : 2026-01-30 07:20
+// Last Modified : 2026-01-30 08:08
 // ---------------------------------------------------------------------------------
 // Description   : AXI Master with burst support up to length 8 and outstanding capability
 //
@@ -103,7 +103,7 @@ reg  [REQ_CNT_W -1:0] rd_req_cnt_r;       // Completed request counter
 assign rd_set_bits = ~rd_valid_bits;
 EASYAXI_ARB #(
     .DEEP_NUM(OST_DEPTH)
-) U_RD_SET_ARB (
+) U_MST_RD_ARB_SET (
     .clk      (clk           ),
     .rst_n    (rst_n         ),
     .queue_i  (rd_set_bits   ),
@@ -113,7 +113,7 @@ EASYAXI_ARB #(
 
 EASYAXI_ARB #(
     .DEEP_NUM(OST_DEPTH)
-) U_RD_CLEAR_ARB (
+) U_MST_RD_ARB_CLEAR (
     .clk      (clk           ),
     .rst_n    (rst_n         ),
     .queue_i  (rd_clear_bits ),
@@ -123,12 +123,12 @@ EASYAXI_ARB #(
 
 EASYAXI_ARB #(
     .DEEP_NUM(OST_DEPTH)
-) U_RD_REQ_ARB (
-    .clk      (clk         ),
-    .rst_n    (rst_n       ),
-    .queue_i  (rd_req_bits ),
-    .sche_en  (rd_req_en   ),
-    .pointer_o(rd_req_ptr  )
+) U_MST_RD_ARB_REQ (
+    .clk      (clk           ),
+    .rst_n    (rst_n         ),
+    .queue_i  (rd_req_bits   ),
+    .sche_en  (rd_req_en     ),
+    .pointer_o(rd_req_ptr    )
 );
 
 //--------------------------------------------------------------------------------
@@ -137,7 +137,7 @@ EASYAXI_ARB #(
 assign rd_buff_set = ~rd_buff_full & rd_en;
 assign rd_buff_clr = rd_valid_buff_r[rd_clr_ptr] & ~rd_req_buff_r[rd_clr_ptr] & ~rd_comp_buff_r[rd_clr_ptr];
 
-always @(*) begin : GEN_VLD_VEC
+always @(*) begin : MST_RD_VLD_VEC
     integer i;
     rd_valid_bits = {OST_DEPTH{1'b0}};
     for (i=0; i<OST_DEPTH; i=i+1) begin
@@ -146,7 +146,7 @@ always @(*) begin : GEN_VLD_VEC
 end
 assign rd_buff_full = &rd_valid_bits;
 
-always @(*) begin : GEN_REQ_VEC
+always @(*) begin : MST_RD_REQ_VEC
     integer i;
     rd_req_bits = {OST_DEPTH{1'b0}};
     for (i=0; i<OST_DEPTH; i=i+1) begin
@@ -154,7 +154,7 @@ always @(*) begin : GEN_REQ_VEC
     end
 end
 
-always @(*) begin : GEN_CLEAR_VEC
+always @(*) begin : MST_RD_CLEAR_VEC
     integer i;
     rd_clear_bits = {OST_DEPTH{1'b0}};
     for (i=0; i<OST_DEPTH; i=i+1) begin
@@ -168,7 +168,7 @@ assign rd_result_last = axi_mst_rlast;                     // Burst end flag
 
 genvar i;
 generate
-for (i=0; i<OST_DEPTH; i=i+1) begin: OST_BUFFERS
+for (i=0; i<OST_DEPTH; i=i+1) begin: GEN_MST_RD_CTRL
     // Valid flag buffer
     always @(posedge clk or negedge rst_n) begin
         if (~rst_n) begin
@@ -217,14 +217,10 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: OST_BUFFERS
             rd_clear_buff_r[i] <= #DLY rd_valid_buff_r[i] & ~rd_req_buff_r[i] & ~rd_comp_buff_r[i];
         end
     end
-end
-endgenerate
 
 //--------------------------------------------------------------------------------
 // AXI AR Payload Buffer
 //--------------------------------------------------------------------------------
-generate
-for (i=0; i<OST_DEPTH; i=i+1) begin: AR_PAYLOAD
     always @(*) begin // Burst configuration
         case (rd_req_cnt_r[1:0])  
             2'b00: begin  // INCR burst, len=4
@@ -277,14 +273,10 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: AR_PAYLOAD
             rd_user_buff_r  [i] <= #DLY rd_req_cnt_r;
         end
     end
-end
-endgenerate
 
 //--------------------------------------------------------------------------------
 // AXI R Payload Buffer
 //--------------------------------------------------------------------------------
-generate
-for (i=0; i<OST_DEPTH; i=i+1) begin: R_PAYLOAD
     always @(posedge clk or negedge rst_n) begin
         if (~rst_n) begin
             rd_resp_buff_r[i] <= #DLY {`AXI_RESP_W{1'b0}};
@@ -343,22 +335,20 @@ assign rd_done = (rd_req_cnt_r == {REQ_CNT_W{1'b1}});  // All requests completed
 EASYAXI_ORDER #(
     .OST_DEPTH(OST_DEPTH),
     .ID_WIDTH (`AXI_ID_W)
-) U_EASYAXI_MST_RRESP_ORDER (
-    .clk        (clk             ),
-    .rst_n      (rst_n           ),
+) U_MST_RD_ORDER_RESP (
+    .clk        (clk                               ),
+    .rst_n      (rst_n                             ),
 
-    .req_valid  (axi_mst_arvalid ),
-    .req_ready  (axi_mst_arready ),
-    .req_id     (axi_mst_arid    ),
-    .req_ptr    (rd_req_ptr      ),
+    .push       (axi_mst_arvalid & axi_mst_arready ),
+    .push_id    (axi_mst_arid                      ),
+    .push_ptr   (rd_req_ptr                        ),
 
-    .resp_valid (axi_mst_rvalid  ),
-    .resp_ready (axi_mst_rready  ),
-    .resp_id    (axi_mst_rid     ),
-    .resp_last  (axi_mst_rlast   ),
+    .pop        (axi_mst_rvalid & axi_mst_rready   ),
+    .pop_id     (axi_mst_rid                       ),
+    .pop_last   (axi_mst_rlast                     ),
 
-    .resp_ptr   (rd_result_ptr   ),
-    .resp_bits  (                )
+    .order_ptr  (rd_result_ptr                     ),
+    .order_bits (                                  )
 );
 //--------------------------------------------------------------------------------
 // Output Signal

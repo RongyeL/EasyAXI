@@ -5,7 +5,7 @@
 // Filename      : easyaxi_slv.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:52
-// Last Modified : 2026-01-30 06:46
+// Last Modified : 2026-01-30 08:08
 // ---------------------------------------------------------------------------------
 // Description   : AXI Slave with burst support up to length 8 and outstanding capability
 //
@@ -114,32 +114,32 @@ wire                       rd_wrap_en       [OST_DEPTH-1:0]; // Wrap happen
 //--------------------------------------------------------------------------------
 EASYAXI_ARB #(
     .DEEP_NUM(OST_DEPTH)
-) U_RD_SET_ARB (
+) U_SLV_RD_ARB_SET (
     .clk      (clk           ),
     .rst_n    (rst_n         ),
     .queue_i  (rd_set_bits   ),
     .sche_en  (rd_buff_set   ),
-    .pointer_o(rd_set_ptr  )
+    .pointer_o(rd_set_ptr    )
 );
 
 EASYAXI_ARB #(
     .DEEP_NUM(OST_DEPTH)
-) U_RD_CLEAR_ARB (
+) U_SLV_RD_ARB_CLEAR (
     .clk      (clk           ),
     .rst_n    (rst_n         ),
     .queue_i  (rd_clear_bits ),
     .sche_en  (rd_buff_clr   ),
-    .pointer_o(rd_clr_ptr  )
+    .pointer_o(rd_clr_ptr    )
 );
 
 EASYAXI_ARB #(
     .DEEP_NUM(OST_DEPTH)
-) U_RD_RESULT_ARB (
+) U_SLV_RD_ARB_RESULT (
     .clk      (clk            ),
     .rst_n    (rst_n          ),
     .queue_i  (rd_result_bits & rd_order_bits),
     .sche_en  (rd_result_en   ),
-    .pointer_o(rd_result_ptr)
+    .pointer_o(rd_result_ptr  )
 );
 
 //--------------------------------------------------------------------------------
@@ -148,7 +148,7 @@ EASYAXI_ARB #(
 assign rd_buff_set = axi_slv_arvalid & axi_slv_arready;
 assign rd_buff_clr = rd_valid_buff_r[rd_clr_ptr] & ~rd_result_buff_r[rd_clr_ptr] & ~rd_comp_buff_r[rd_clr_ptr];
 
-always @(*) begin : GEN_VLD_VEC
+always @(*) begin : SLV_RD_VLD_VEC
     integer i;
     rd_valid_bits = {OST_DEPTH{1'b0}};
     for (i=0; i<OST_DEPTH; i=i+1) begin
@@ -158,7 +158,7 @@ end
 assign rd_buff_full = &rd_valid_bits;
 assign rd_set_bits = ~rd_valid_bits;
 
-always @(*) begin : GEN_RESULT_VEC
+always @(*) begin : SLV_RD_RESULT_VEC
     integer i;
     rd_result_bits = {OST_DEPTH{1'b0}};
     for (i=0; i<OST_DEPTH; i=i+1) begin
@@ -166,7 +166,7 @@ always @(*) begin : GEN_RESULT_VEC
     end
 end
 
-always @(*) begin : GEN_CLEAR_VEC
+always @(*) begin : SLV_RD_CLEAR_VEC
     integer i;
     rd_clear_bits = {OST_DEPTH{1'b0}};
     for (i=0; i<OST_DEPTH; i=i+1) begin
@@ -181,7 +181,7 @@ assign rd_result_last = axi_slv_rlast;
 
 genvar i;
 generate 
-for (i=0; i<OST_DEPTH; i=i+1) begin: OST_BUFFERS
+for (i=0; i<OST_DEPTH; i=i+1) begin: GEN_SLV_RD_CTRL
     // Valid buffer control
     always @(posedge clk or negedge rst_n) begin
         if (~rst_n) begin
@@ -240,14 +240,10 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: OST_BUFFERS
             rd_clear_buff_r[i] <= #DLY rd_valid_buff_r[i] & ~rd_result_buff_r[i] & ~rd_comp_buff_r[i];
         end
     end
-end
-endgenerate
 
 //--------------------------------------------------------------------------------
 // AXI AR Payload Buffer
 //--------------------------------------------------------------------------------
-generate 
-for (i=0; i<OST_DEPTH; i=i+1) begin: AR_PAYLOAD
     always @(posedge clk or negedge rst_n) begin
         if (~rst_n) begin
             rd_id_buff_r[i]    <= #DLY {`AXI_ID_W{1'b0}};
@@ -266,14 +262,10 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: AR_PAYLOAD
             rd_user_buff_r[i]  <= #DLY axi_slv_aruser;
         end
     end
-end
-endgenerate
 
 //--------------------------------------------------------------------------------
 // Burst Address Control
 //--------------------------------------------------------------------------------
-generate 
-for (i=0; i<OST_DEPTH; i=i+1) begin: BURST_CTRL
     assign rd_start_addr   [i] = (rd_buff_set && (rd_set_ptr == i)) ? axi_slv_araddr : rd_addr_buff_r[i];
     assign rd_number_bytes [i] = (rd_buff_set && (rd_set_ptr == i)) ? 1 << axi_slv_arsize : 1 << rd_size_buff_r[i];
     assign rd_burst_lenth  [i] = (rd_buff_set && (rd_set_ptr == i)) ? axi_slv_arlen + 1 : rd_len_buff_r[i] + 1;
@@ -334,14 +326,10 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: BURST_CTRL
             endcase
         end
     end
-end
-endgenerate
 
 //--------------------------------------------------------------------------------
 // AXI R Payload Buffer
 //--------------------------------------------------------------------------------
-generate 
-for (i=0; i<OST_DEPTH; i=i+1) begin: R_PAYLOAD
     always @(posedge clk or negedge rst_n) begin
         if (~rst_n) begin
             rd_resp_buff_r[i] <= #DLY {`AXI_RESP_W{1'b0}};
@@ -381,14 +369,10 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: R_PAYLOAD
             rd_data_buff_r[i][((rd_curr_index_r[i]-1)*`AXI_DATA_W) +: `AXI_DATA_W] <= #DLY {{`AXI_DATA_W-`AXI_ID_W-`AXI_ADDR_W{1'b0}},rd_id_buff_r[i],rd_curr_addr_r[i]};
         end
     end
-end
-endgenerate
 
 //--------------------------------------------------------------------------------
 // Simulate the data reading process
 //--------------------------------------------------------------------------------
-generate 
-for (i=0; i<OST_DEPTH; i=i+1) begin: RD_DATA_PROC_SIM
     always @(posedge clk or negedge rst_n) begin
         if (~rst_n) begin
             rd_data_en_cnt[i] <= #DLY `AXI_DATA_GET_CNT_W'h0;
@@ -417,22 +401,20 @@ endgenerate
 EASYAXI_ORDER #(
     .OST_DEPTH(OST_DEPTH),
     .ID_WIDTH (`AXI_ID_W)
-) U_EASYAXI_SLV_RRESP_ORDER (
-    .clk        (clk             ),
-    .rst_n      (rst_n           ),
+) U_SLV_RD_ORDER_RESP (
+    .clk        (clk                               ),
+    .rst_n      (rst_n                             ),
 
-    .req_valid  (axi_slv_arvalid ),
-    .req_ready  (axi_slv_arready ),
-    .req_id     (axi_slv_arid    ),
-    .req_ptr    (rd_set_ptr    ),
+    .push       (axi_slv_arvalid & axi_slv_arready ),
+    .push_id    (axi_slv_arid                      ),
+    .push_ptr   (rd_set_ptr                        ),
 
-    .resp_valid (axi_slv_rvalid  ),
-    .resp_ready (axi_slv_rready  ),
-    .resp_id    (axi_slv_rid     ),
-    .resp_last  (axi_slv_rlast   ),
+    .pop        (axi_slv_rvalid & axi_slv_rready   ),
+    .pop_id     (axi_slv_rid                       ),
+    .pop_last   (axi_slv_rlast                     ),
 
-    .resp_ptr   (                ),
-    .resp_bits  (rd_order_bits   )
+    .order_ptr  (                                  ),
+    .order_bits (rd_order_bits                     )
 );
 //--------------------------------------------------------------------------------
 // Output Signal

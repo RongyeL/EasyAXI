@@ -5,7 +5,7 @@
 // Filename      : easyaxi_order.v
 // Author        : Rongye
 // Created On    : 2025-08-25 07:35
-// Last Modified : 2025-09-06 02:03
+// Last Modified : 2026-01-30 07:26
 // ---------------------------------------------------------------------------------
 // Description   : 
 //   Tracks outstanding AXI transactions using per‑ID FIFOs.
@@ -18,18 +18,16 @@ module EASYAXI_ORDER #(
     input  wire                         clk,
     input  wire                         rst_n,
     
-    input  wire                         req_valid,
-    input  wire                         req_ready,
-    input  wire [ID_WIDTH-1:0]          req_id,
-    input  wire [$clog2(OST_DEPTH)-1:0] req_ptr,
+    input  wire                         push,
+    input  wire [ID_WIDTH-1:0]          push_id,
+    input  wire [$clog2(OST_DEPTH)-1:0] push_ptr,
 
-    input  wire                         resp_valid,
-    input  wire                         resp_ready,
-    input  wire [ID_WIDTH-1:0]          resp_id,
-    input  wire                         resp_last,
+    input  wire                         pop,
+    input  wire [ID_WIDTH-1:0]          pop_id,
+    input  wire                         pop_last,
 
-    output wire [$clog2(OST_DEPTH)-1:0] resp_ptr,
-    output reg  [OST_DEPTH-1:0]         resp_bits
+    output wire [$clog2(OST_DEPTH)-1:0] order_ptr,
+    output reg  [OST_DEPTH-1:0]         order_bits
 );
 
 localparam ID_NUM    = 2**ID_WIDTH;
@@ -72,16 +70,16 @@ always @(*) begin
         fifo_rd[j]      = 1'b0;
         fifo_data_in[j] = {PTR_WIDTH{1'b0}};
     end
-    if (req_valid && req_ready) begin
-        fifo_wr[req_id]      = 1'b1;
-        fifo_data_in[req_id] = req_ptr;
+    if (push) begin
+        fifo_wr[push_id]      = 1'b1;
+        fifo_data_in[push_id] = push_ptr;
     end
-    if (resp_valid && resp_ready && ~fifo_empty[resp_id] && resp_last) begin
-        fifo_rd[resp_id] = 1'b1;
+    if (pop && ~fifo_empty[pop_id] && pop_last) begin
+        fifo_rd[pop_id] = 1'b1;
     end
 end
 
-assign resp_ptr = fifo_data_out[resp_id];
+assign order_ptr = fifo_data_out[pop_id];
 
 // Generate one-hot bitmap per FIFO
 generate
@@ -94,9 +92,9 @@ endgenerate
 // OR all bitmaps into one combined output
 always @(*) begin
 integer k;
-    resp_bits = {OST_DEPTH{1'b0}};
+    order_bits = {OST_DEPTH{1'b0}};
     for (k=0; k<ID_NUM; k=k+1) begin
-        resp_bits = resp_bits | fifo_bitmap[k];
+        order_bits = order_bits | fifo_bitmap[k];
     end
 end
 
