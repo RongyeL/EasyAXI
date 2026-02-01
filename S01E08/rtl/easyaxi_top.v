@@ -5,10 +5,13 @@
 // Filename      : easyaxi.v
 // Author        : Rongye
 // Created On    : 2025-02-05 05:04
-// Last Modified : 2026-01-28 03:45
+// Last Modified : 2026-02-01 06:37
 // ---------------------------------------------------------------------------------
-// Description   : 
-//
+// Description   : This is the top-level module of the EasyAXI verification platform
+//  Designed for educational purposes to AXI (Advanced eXtensible Interface) 
+//  protocol implementation and verification.
+//   - OST_DEPTH parameter controls the maximum outstanding transactions
+//   - AXI bus widths should be configured via `define statements
 //
 // -FHDR----------------------------------------------------------------------------
 module EASYAXI_TOP (
@@ -38,7 +41,9 @@ wire  [`AXI_DATA_W  -1:0]   axi_mst_rdata;
 wire  [`AXI_RESP_W  -1:0]   axi_mst_rresp;
 wire                        axi_mst_rlast;
 wire  [`AXI_USER_W  -1:0]   axi_mst_ruser;
-EASYAXI_MST_RD_CTRL U_EASYAXI_MST_RD_CTRL (
+EASYAXI_MST_RD_CTRL #(
+    .OST_DEPTH  (16      )
+)U_EASYAXI_MST_RD_CTRL(
     .clk             (clk             ), // i
     .rst_n           (rst_n           ), // i
     .rd_en           (rd_en           ), // i
@@ -83,7 +88,9 @@ wire                        axi_mst_bready;
 wire  [`AXI_ID_W    -1:0]   axi_mst_bid;
 wire  [`AXI_RESP_W  -1:0]   axi_mst_bresp;
 wire  [`AXI_USER_W  -1:0]   axi_mst_buser;
-EASYAXI_MST_WR_CTRL U_EASYAXI_MST_WR_CTRL (
+EASYAXI_MST_WR_CTRL #(
+    .OST_DEPTH  (16      )
+) U_EASYAXI_MST_WR_CTRL(
     .clk             (clk             ), // i
     .rst_n           (rst_n           ), // i
     .wr_en           (wr_en           ), // i
@@ -131,7 +138,9 @@ wire  [`AXI_RESP_W  -1:0]   axi_slv_rresp;
 wire                        axi_slv_rlast;
 wire  [`AXI_USER_W  -1:0]   axi_slv_ruser;
 
-EASYAXI_SLV_RD_CTRL U_EASYAXI_SLV_RD_CTRL (
+EASYAXI_SLV_RD_CTRL #(
+    .OST_DEPTH  (16      )
+) U_EASYAXI_SLV_RD_CTRL(
     .clk             (clk             ), // i
     .rst_n           (rst_n           ), // i
     .axi_slv_arvalid (axi_slv_arvalid ), // i
@@ -173,7 +182,9 @@ wire                        axi_slv_bready;
 wire  [`AXI_ID_W    -1:0]   axi_slv_bid;
 wire  [`AXI_RESP_W  -1:0]   axi_slv_bresp;
 wire  [`AXI_USER_W  -1:0]   axi_slv_buser;
-EASYAXI_SLV_WR_CTRL U_EASYAXI_SLV_WR_CTRL (
+EASYAXI_SLV_WR_CTRL #(
+    .OST_DEPTH  (16      )
+) U_EASYAXI_SLV_WR_CTRL(
     .clk             (clk             ), // i
     .rst_n           (rst_n           ), // i
 
@@ -200,7 +211,7 @@ EASYAXI_SLV_WR_CTRL U_EASYAXI_SLV_WR_CTRL (
     .axi_slv_buser   (axi_slv_buser   )  // i
 );
 //--------------------------------------------------------------------------------
-// Link Wire
+// Link 
 //--------------------------------------------------------------------------------
 assign axi_slv_arvalid = axi_mst_arvalid;
 assign axi_mst_arready = axi_slv_arready;
@@ -240,4 +251,5 @@ assign axi_slv_bready = axi_mst_bready;
 assign axi_mst_bid    = axi_slv_bid;
 assign axi_mst_bresp  = axi_slv_bresp;
 assign axi_mst_buser  = axi_slv_buser;
+
 endmodule

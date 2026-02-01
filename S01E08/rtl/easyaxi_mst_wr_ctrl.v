@@ -5,9 +5,14 @@
 // Filename      : easyaxi_mst_wr_ctrl.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:45
-// Last Modified : 2026-01-30 08:08
+// Last Modified : 2026-02-01 06:33
 // ---------------------------------------------------------------------------------
-// Description   : AXI Master with burst support up to length 8 and outstanding capability
+// Description   : This module implements an AXI master write controller.
+//   - Supports outstanding transactions (configurable depth via OST_DEPTH)
+//   - Supports all AXI burst types: FIXED, INCR, WRAP
+//   - Maximum burst length: 8 beats
+//   - Burst address generation and calculation
+//   - Write data ordering
 //
 // -FHDR----------------------------------------------------------------------------
 module EASYAXI_MST_WR_CTRL #(

@@ -1,11 +1,15 @@
-# S01E07: AXI 同ID保序实现 
-1. 读事务为例，说明AXI ID同保序特性实现；
-2. SLV侧，同ID请求按收请求顺序返回响应；
-3. MST侧，同ID请求按发请求顺序接收响应；
- 
+# S01E08: AXI 写操作实现 
+1. 实现写Data通道保序特性；
+2. 支持写Burst特性；
+3. 支持写Outstanding特性；
+4. 支持写响应同ID保序；
+5. 不支持写Strb。
+
 ---
 
-# S01E07: AXI Same-ID ORDER Implementation
-1. Using a read transaction as an example, this section describes the implementation of the AXI Same-ID Sequence Preservation feature.
-2. On the SLV side, responses to same-ID requests are returned in the order in which they are received.
-3. On the MST side, responses to same-ID requests are received in the order in which they are sent.
+# S01E08: AXI Write Operation Implementation
+1. Implements Write Data channel ordering guarantee;
+2. Supports Write Burst feature;
+3. Supports Write Outstanding transactions;
+4. Supports Same-ID ordering for write responses;
+5. Does not support Write Strb.

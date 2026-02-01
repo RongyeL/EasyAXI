@@ -5,11 +5,14 @@
 // Filename      : easyaxi_order.v
 // Author        : Rongye
 // Created On    : 2025-08-25 07:35
-// Last Modified : 2026-01-30 07:26
+// Last Modified : 2026-02-01 06:38
 // ---------------------------------------------------------------------------------
-// Description   : 
-//   Tracks outstanding AXI transactions using per‑ID FIFOs.
-//   wr on request handshake, rd on last‑beat response.
+// Description   : This module implements an AXI transaction ordering controller.
+//   - Maintains order of outstanding transactions per ID
+//   - Uses per-ID FIFOs to store transaction pointers
+//   - Supports configurable outstanding depth (OST_DEPTH) and ID width (ID_WIDTH)
+//   - Provides ordered pointer output and bitmap of all outstanding transactions
+//
 // -FHDR----------------------------------------------------------------------------
 module EASYAXI_ORDER #(
     parameter OST_DEPTH = 16, 

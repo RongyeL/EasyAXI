@@ -5,9 +5,14 @@
 // Filename      : easyaxi_slv.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:52
-// Last Modified : 2026-01-30 08:08
+// Last Modified : 2026-02-01 06:35
 // ---------------------------------------------------------------------------------
-// Description   : AXI Slave with burst support up to length 8 and outstanding capability
+// Description   : This module implements an AXI slave read controller.
+//   - Supports outstanding transactions (configurable depth via OST_DEPTH)
+//   - Supports all AXI burst types: FIXED, INCR, WRAP
+//   - Maximum burst length: 8 beats
+//   - Address decoding and error response generation
+//   - Simulated data generation with configurable latency
 //
 // -FHDR----------------------------------------------------------------------------
 module EASYAXI_SLV_RD_CTRL #(

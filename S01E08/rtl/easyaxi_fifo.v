@@ -5,10 +5,13 @@
 // Filename      : easyaxi_fifo.v
 // Author        : Rongye
 // Created On    : 2025-08-25 07:53
-// Last Modified : 2025-09-06 07:53
+// Last Modified : 2026-02-01 06:38
 // ---------------------------------------------------------------------------------
-// Description   : 
-//
+// Description   : This module implements a synchronous FIFO.
+//   - Configurable data width (DATA_WIDTH) and depth (DEPTH)
+//   - Circular buffer implementation with wrap-around pointers
+//   - Full and empty flags for flow control
+//   - Synchronous read and write operations
 //
 // -FHDR----------------------------------------------------------------------------
 module EASYAXI_FIFO #(

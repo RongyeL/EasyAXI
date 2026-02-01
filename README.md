@@ -20,6 +20,9 @@ AXI接口数据交互使用的是valid&ready握手机制，理解握手是使用
 ## S01E07: AXI 同ID保序实现
 读事务为例，说明AXI ID同保序特性实现。 - [跳转到 S01E07](./S01E07/README.md)
 
+## S01E08: AXI 写操作实现
+对照读，现在实现了写操作，特别的处理了写数据的保序。 - [跳转到 S01E08](./S01E08/README.md)
+
 
 ## 注：
 1. 通过`git clone https://github.com/RongyeL/EasyAXI.git --depth 1`获取本系列视频的项目文件;
@@ -49,3 +52,8 @@ This section uses a read transaction as an example to illustrate the implementat
 
 # S01E07: AXI Same-ID ORDER Implementation
 Using a read transaction as an example, this section describes the implementation of the AXI Same-ID Sequence Preservation feature. - [Jump to S01E07](./S01E07/README.md)
+
+# S01E08: AXI Write Operation Implementation
+Following the read implementation, this section now implements write operations, with special handling for write data ordering. - [Jump to S01E08](./S01E08/README.md)
+
+

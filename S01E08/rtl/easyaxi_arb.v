@@ -5,9 +5,13 @@
 // Filename      : easyaxi_arb.v
 // Author        : Rongye
 // Created On    : 2025-08-04 08:29
-// Last Modified : 2025-08-28 08:47
+// Last Modified : 2026-02-01 06:37
 // ---------------------------------------------------------------------------------
-// Description   : Round-robin arbiter with combinational index output
+// Description   : This module implements a round-robin arbiter.
+//   - Supports configurable depth via DEEP_NUM parameter
+//   - Round-robin scheduling with fairness guarantee
+//   - Combinational grant generation with one-hot to index conversion
+//   - Handles empty request queue gracefully
 //
 // -FHDR----------------------------------------------------------------------------
 module EASYAXI_ARB #(

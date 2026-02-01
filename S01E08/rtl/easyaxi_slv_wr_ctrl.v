@@ -5,9 +5,14 @@
 // Filename      : easyaxi_slv_wr_ctrl.v
 // Author        : Rongye
 // Created On    : 2025-02-06 06:52
-// Last Modified : 2026-01-30 08:08
+// Last Modified : 2026-02-01 06:36
 // ---------------------------------------------------------------------------------
-// Description   : AXI Slave with burst support up to length 8 and outstanding capability
+// Description   : This module implements an AXI slave write controller.
+//   - Supports outstanding transactions (configurable depth via OST_DEPTH)
+//   - Supports all AXI burst types: FIXED, INCR, WRAP
+//   - Maximum burst length: 8 beats
+//   - Write data reception and storage
+//   - Response generation with simulated processing latency
 //
 // -FHDR----------------------------------------------------------------------------
 module EASYAXI_SLV_WR_CTRL #(
@@ -394,7 +399,7 @@ for (i=0; i<OST_DEPTH; i=i+1) begin: GEN_SLV_WR_CTRL
             wr_resp_get_cnt[i] <= #DLY wr_resp_get_cnt[i] + `AXI_RESP_GET_CNT_W'h1;
         end
     end
-    assign wr_resp_get   [i] = wr_valid_buff_r[i] & (wr_resp_get_cnt[i]==(MAX_GET_RESP_DLY - wr_id_buff_r[i]));
+    assign wr_resp_get   [i] = wr_valid_buff_r[i] & (wr_resp_get_cnt[i]==(MAX_GET_RESP_DLY - 2*wr_id_buff_r[i]));
     assign wr_resp_err   [i] = (wr_id_buff_r[i] == `AXI_ID_W'hF);
 end
 endgenerate
