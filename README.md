@@ -1,65 +1,86 @@
 # EasyAXI
-## S01E01: 设置开发环境 
-系列视频之初，先准备一个能够正常编译、仿真的环境。 - [跳转到 S01E01](./S01E01/README.md)
 
-## S01E02: 初识AXI握手
-AXI接口数据交互使用的是valid&ready握手机制，理解握手是使用AXI的第一步。 - [跳转到 S01E02](./S01E02/README.md)
+从零开始实现 AXI 总线协议的教学项目，配套[视频系列](https://space.bilibili.com/)。
 
-## S01E03: AXI读通道初实现
-以读通道为例，展示一个完整的AXI读操作流程。 - [跳转到 S01E03](./S01E03/README.md)
+S01E09 为当前最新版本，在前 8 集逐步实现的 AXI 读/写通道、Burst、Outstanding、
+乱序、保序等特性的基础上，构建了完整的 **EasyAXI 控制器 IP 框架**——将底层 AXI
+握手封装为简洁的 req/resp 接口，由四个控制器自动完成 OST 管理、同 ID 保序、地址
+计算。上层业务（Producer/Consumer）只需提供 addr + size + data，无需触碰 AW/W/B/AR/R。
 
-## S01E04: AXI读Burst实现
-以读通道为例，说明AXI Burst特性的实现，包括FIXED、INCR、WRAP类型。 - [跳转到 S01E04](./S01E04/README.md)
+```
+Producer              Consumer
+  │ m_wr_req/resp       │ m_rd_req/resp
+  ▼                     ▼
+MST_WR_CTRL          MST_RD_CTRL     ← Master Side — 请求/响应到 AXI 信号
+  │ AXI AW/W/B          │ AXI AR/R
+  ▼                     ▼
+SLV_WR_CTRL          SLV_RD_CTRL     ← Slave Side — AXI 信号到内部接口
+  │ s_wr_data_*          │ s_rd_req/resp_*
+  ▼                     ▼
+        SRAM / MEM
+```
 
-## S01E05: AXI outstanding实现
-以读通道为例，说明AXI OST特性的实现，支持多种OST深度可配。 - [跳转到 S01E05](./S01E05/README.md)
+## 快速开始
 
-## S01E06: AXI 乱序&交织实现
-读事务为例，说明AXI Out-of-order、Interleave特性的实现。 - [跳转到 S01E06](./S01E06/README.md)
+```bash
+git clone https://github.com/RongyeL/EasyAXI.git --depth 1
+cd EasyAXI/S01E09
+source script/project.sh
+cd verification/sim
+make run
+```
 
-## S01E07: AXI 同ID保序实现
-读事务为例，说明AXI ID同保序特性实现。 - [跳转到 S01E07](./S01E07/README.md)
+> 需要自行安装 VCS + Verdi 环境，视频教程不涉及。
 
-## S01E08: AXI 写操作实现
-对照读，现在实现了写操作，特别的处理了写数据的保序。 - [跳转到 S01E08](./S01E08/README.md)
+## 目录
 
-## S01E09: CQE 生产者-消费者模型
-基于 EasyAXI 控制器 IP 框架，实现 AXI CQE 生产者-消费者模型，演示 Master/Slave 四层控制器的 req/resp 接口用法。 - [跳转到 S01E09](./S01E09/README.md)
+| 章节 | 主题 | 内容 |
+|------|------|------|
+| [S01E01](./S01E01/) | 设置开发环境 | 准备 VCS + Verdi 编译仿真环境 |
+| [S01E02](./S01E02/) | 初识 AXI 握手 | valid/ready 双向握手机制 |
+| [S01E03](./S01E03/) | AXI 读通道 | 完成一次完整读操作 |
+| [S01E04](./S01E04/) | AXI 读 Burst | FIXED / INCR / WRAP 三种 burst 类型 |
+| [S01E05](./S01E05/) | AXI Outstanding | 流水线并行、多事务 OST 管理 |
+| [S01E06](./S01E06/) | AXI 乱序 & 交织 | Out-of-Order / Interleave |
+| [S01E07](./S01E07/) | AXI 同 ID 保序 | 读事务响应顺序保证 |
+| [S01E08](./S01E08/) | AXI 写操作 | 写通道实现、写数据保序 |
+| [**S01E09**](./S01E09/) | **CQE 生产者-消费者** | **EasyAXI 控制器 IP 框架（MST_WR/RD_CTRL、SLV_WR/RD_CTRL + OST/ORDER/Burst Addressing 共享机制）** |
 
+## 工程结构
 
-## 注：
-1. 通过`git clone https://github.com/RongyeL/EasyAXI.git --depth 1`获取本系列视频的项目文件;
-2. 在编译或仿真前，需要在`EasyAXI/S01EXX`路径下，执行`source script/project.sh`，通过该脚本确定当期项目的根路径；
-3. 关于开发软件：很抱歉，vcs+verdi的环境需要自行安装，本教学视频不会说明或提供。
+```
+S01E09/                        # 最新版本，含完整控制器 IP 框架
+├── doc/
+│   └── axi_ctrl_spec.md       # 控制器接口规范（信号表、数据流、时序图）
+├── rtl/
+│   ├── easyaxi_define.v       # AXI 位宽宏定义
+│   ├── easyaxi_top.v          # 顶层集成
+│   ├── easyaxi_prod.v         # Producer — 生产者状态机
+│   ├── easyaxi_cons.v         # Consumer — 消费者状态机
+│   ├── easyaxi_mst_wr_ctrl.v  # Master 写控制器 (req → AW/W/B)
+│   ├── easyaxi_mst_rd_ctrl.v  # Master 读控制器 (req → AR/R)
+│   ├── easyaxi_slv_wr_ctrl.v  # Slave 写控制器  (AW/W/B → 内部接口)
+│   ├── easyaxi_slv_rd_ctrl.v  # Slave 读控制器  (AR/R → 内部接口)
+│   ├── easyaxi_sram.v         # SRAM 封装 (Slave 控制器 + MEM)
+│   ├── easyaxi_mem.v          # 128-bit 寄存器堆存储器
+│   ├── easyaxi_arb.v          # 轮转优先级仲裁器 (Round-Robin)
+│   ├── easyaxi_order.v        # 同 ID 保序队列 (per-ID FIFO)
+│   └── easyaxi_fifo.v         # 同步 FIFO
+├── verification/
+│   ├── tb/testbench.v         # 仿真验证
+│   └── sim/Makefile           # VCS 编译/仿真/波形
+└── script/project.sh          # 环境初始化
+```
 
---- 
+各子集（S01E01 ~ S01E08）仅包含当集相关的 RTL 文件，结构类似。
 
-# EasyAXI (under construction)
-## S01E01: Set up the development environment
-At the beginning of the video series, prepare an environment that can compile and simulate normally. - [Jump to S01E01](./S01E01/README.md)
+## 环境
 
-## S01E02: Introduction to AXI handshake
-AXI interface data interaction uses the valid&ready handshake mechanism. Understanding the handshake is the first step to use AXI. - [Jump to S01E02](./S01E02/README.md)
+| 工具 | 版本 | 用途 |
+|------|------|------|
+| VCS | O-2018.09-SP2 | 编译 + 仿真 |
+| Verdi | O-2018.09-SP2 | 波形调试 |
 
-## S01E03: Initial implementation of AXI read channel
-Taking the read channel as an example, show a complete AXI read operation process. - [Jump to S01E03](./S01E03/README.md)
+---
 
-## S01E04: AXI read Burst implementation
-Taking the read channel as an example, explain the implementation of the AXI Burst feature, including FIXED, INCR, and WRAP types. - [Jump to S01E04](./S01E04/README.md)
-
-## S01E05: AXI outstanding implementation
-Take the read channel as an example to explain the implementation of the AXI OST feature, supporting multiple OST depth configurations. - [Jump to S01E05](./S01E05/README.md)
-
-## S01E06: AXI Out-of-Order & Interleave Implementation
-This section uses a read transaction as an example to illustrate the implementation of the AXI Out-of-Order and Interleave features. - [Jump to S01E06](./S01E06/README.md)
-
-# S01E07: AXI Same-ID ORDER Implementation
-Using a read transaction as an example, this section describes the implementation of the AXI Same-ID Sequence Preservation feature. - [Jump to S01E07](./S01E07/README.md)
-
-# S01E08: AXI Write Operation Implementation
-Following the read implementation, this section now implements write operations, with special handling for write data ordering. - [Jump to S01E08](./S01E08/README.md)
-
-## S01E09: CQE Producer-Consumer Model
-Implements an AXI-based CQE producer-consumer model using the EasyAXI controller IP framework, demonstrating the req/resp interface of four-layer Master/Slave controllers. - [Jump to S01E09](./S01E09/README.md)
-
-
+[GitHub](https://github.com/RongyeL/EasyAXI) · [Apache 2.0](./LICENSE)
