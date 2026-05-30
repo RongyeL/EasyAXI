@@ -1,4 +1,4 @@
-# EasyAXI(施工中)
+# EasyAXI
 ## S01E01: 设置开发环境 
 系列视频之初，先准备一个能够正常编译、仿真的环境。 - [跳转到 S01E01](./S01E01/README.md)
 
@@ -23,6 +23,9 @@ AXI接口数据交互使用的是valid&ready握手机制，理解握手是使用
 ## S01E08: AXI 写操作实现
 对照读，现在实现了写操作，特别的处理了写数据的保序。 - [跳转到 S01E08](./S01E08/README.md)
 
+## S01E09: CQE 生产者-消费者模型
+基于 EasyAXI 控制器 IP 框架，实现 AXI CQE 生产者-消费者模型，演示 Master/Slave 四层控制器的 req/resp 接口用法。 - [跳转到 S01E09](./S01E09/README.md)
+
 
 ## 注：
 1. 通过`git clone https://github.com/RongyeL/EasyAXI.git --depth 1`获取本系列视频的项目文件;
@@ -42,7 +45,7 @@ AXI interface data interaction uses the valid&ready handshake mechanism. Underst
 Taking the read channel as an example, show a complete AXI read operation process. - [Jump to S01E03](./S01E03/README.md)
 
 ## S01E04: AXI read Burst implementation
-Taking the read channel as an example, explain the implementation of the AXI Burst feature, including FIXED, INCR, and WRAP types. - [Jump to S01E04](./S01E04/README.md)ment needs to be installed by yourself, and this tutorial video will not explain or provide it.
+Taking the read channel as an example, explain the implementation of the AXI Burst feature, including FIXED, INCR, and WRAP types. - [Jump to S01E04](./S01E04/README.md)
 
 ## S01E05: AXI outstanding implementation
 Take the read channel as an example to explain the implementation of the AXI OST feature, supporting multiple OST depth configurations. - [Jump to S01E05](./S01E05/README.md)
@@ -55,5 +58,8 @@ Using a read transaction as an example, this section describes the implementatio
 
 # S01E08: AXI Write Operation Implementation
 Following the read implementation, this section now implements write operations, with special handling for write data ordering. - [Jump to S01E08](./S01E08/README.md)
+
+## S01E09: CQE Producer-Consumer Model
+Implements an AXI-based CQE producer-consumer model using the EasyAXI controller IP framework, demonstrating the req/resp interface of four-layer Master/Slave controllers. - [Jump to S01E09](./S01E09/README.md)
 
 
