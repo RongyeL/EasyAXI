@@ -1,0 +1,15 @@
+$ROOT_PATH/rtl/easyaxi_define.v
+$ROOT_PATH/rtl/easyaxi_top.v
+$ROOT_PATH/rtl/easyaxi_mst_rd_ctrl.v
+$ROOT_PATH/rtl/easyaxi_slv_rd_ctrl.v
+$ROOT_PATH/rtl/easyaxi_mst_wr_ctrl.v
+$ROOT_PATH/rtl/easyaxi_slv_wr_ctrl.v
+$ROOT_PATH/rtl/easyaxi_arb.v
+$ROOT_PATH/rtl/easyaxi_order.v
+$ROOT_PATH/rtl/easyaxi_fifo.v
+$ROOT_PATH/rtl/easyaxi_mem.v
+$ROOT_PATH/rtl/easyaxi_sram.v
+$ROOT_PATH/rtl/easyaxi_prod.v
+$ROOT_PATH/rtl/easyaxi_cons.v
+
+
